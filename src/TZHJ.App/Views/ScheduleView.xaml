@@ -14,7 +14,7 @@
 
     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
       <StackPanel Margin="24,16">
-        <TextBlock Text="图纸核价（2 窗，日界 15:30 / 15:31）" FontWeight="SemiBold" Margin="0,0,0,8" />
+        <TextBlock Text="图纸核价" FontWeight="SemiBold" Margin="0,0,0,8" />
         <DataGrid ItemsSource="{Binding PricingRows}" IsReadOnly="True" Margin="0,0,0,22">
           <DataGrid.Columns>
             <DataGridTextColumn Header="窗口名" Binding="{Binding Name}" Width="120" />
@@ -24,7 +24,7 @@
           </DataGrid.Columns>
         </DataGrid>
 
-        <TextBlock Text="挑图纸（3 窗，日界 18:00 / 18:01；比核价多一傍晚窗）" FontWeight="SemiBold" Margin="0,0,0,8" />
+        <TextBlock Text="机加工挑图" FontWeight="SemiBold" Margin="0,0,0,8" />
         <DataGrid ItemsSource="{Binding DrawingRows}" IsReadOnly="True">
           <DataGrid.Columns>
             <DataGridTextColumn Header="窗口名" Binding="{Binding Name}" Width="120" />
