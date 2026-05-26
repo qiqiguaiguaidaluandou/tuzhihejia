@@ -46,9 +46,9 @@
             BorderBrush="{StaticResource Border1}" BorderThickness="1" SnapsToDevicePixels="True">
       <DataGrid b:CornerClip.Radius="10" BorderThickness="0" ItemsSource="{Binding Batches}" IsReadOnly="True">
       <DataGrid.Columns>
-        <!-- 批次/本地文件夹：弹性列但设足够最小宽度——窗口宽时铺满、窄时降到最小宽并出横向滚动条，不压缩截断 -->
-        <DataGridTextColumn Header="批次（取数时间范围）" Binding="{Binding WindowText}" Width="*" MinWidth="210" />
-        <DataGridTextColumn Header="本地文件夹" Binding="{Binding FolderName}" Width="*" MinWidth="230" />
+        <!-- 时间列固定宽度（退出弹性平分，永远压不小、完整显示）；文件夹列用 * 吸收多余宽度铺满 -->
+        <DataGridTextColumn Header="批次（取数时间范围）" Binding="{Binding WindowText}" Width="240" />
+        <DataGridTextColumn Header="本地文件夹" Binding="{Binding FolderName}" Width="*" MinWidth="240" />
         <DataGridTextColumn Header="物料数" Binding="{Binding MaterialCount}" Width="80" />
         <DataGridTextColumn Header="进度 / 统计" Binding="{Binding ProgressText}" Width="140" />
         <DataGridTextColumn Header="状态" Binding="{Binding StatusText}" Width="90" />
