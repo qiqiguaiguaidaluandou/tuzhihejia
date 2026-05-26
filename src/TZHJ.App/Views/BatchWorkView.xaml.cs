@@ -67,9 +67,10 @@ public partial class BatchWorkView : UserControl
         if (!readOnly && f.IsEditable)
         {
             var box = new FrameworkElementFactory(typeof(TextBox));
-            box.SetValue(FrameworkElement.MarginProperty, new Thickness(2, 4, 2, 4));
+            box.SetValue(FrameworkElement.MarginProperty, new Thickness(2, 6, 2, 6));
             box.SetValue(Control.PaddingProperty, new Thickness(6, 3, 6, 3)); // 收紧内边距，给数值更多可见宽度
-            box.SetValue(FrameworkElement.VerticalAlignmentProperty, VerticalAlignment.Center);
+            // 垂直撑满单元格（文字由样式 VerticalContentAlignment=Center 居中），避免按内容高度时被上下切掉
+            box.SetValue(FrameworkElement.VerticalAlignmentProperty, VerticalAlignment.Stretch);
             box.SetBinding(TextBox.TextProperty, new Binding($"[{f.Key}]")
             {
                 Mode = BindingMode.TwoWay,

@@ -60,7 +60,7 @@
     <!-- 可编辑网格（列由字段 schema 在代码后置动态生成），圆角卡片框 -->
     <Border Grid.Row="2" Margin="24,0,24,20" CornerRadius="10" Background="White"
             BorderBrush="{StaticResource Border1}" BorderThickness="1" SnapsToDevicePixels="True">
-      <DataGrid x:Name="Grid" b:CornerClip.Radius="10" BorderThickness="0" ItemsSource="{Binding Rows}" />
+      <DataGrid x:Name="Grid" b:CornerClip.Radius="10" BorderThickness="0" RowHeight="44" ItemsSource="{Binding Rows}" />
     </Border>
   </Grid>
 </UserControl>
