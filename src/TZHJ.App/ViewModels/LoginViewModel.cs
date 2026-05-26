@@ -33,7 +33,7 @@ public sealed partial class LoginViewModel : ObservableObject
         _storage = storage;
     }
 
-    [ObservableProperty] private string _employeeId = "10086";
+    [ObservableProperty] private string _employeeId = "108645";
     [ObservableProperty] private string _password = string.Empty;
     [ObservableProperty] private bool _isBusy;
     [ObservableProperty] private string? _error;
