@@ -110,14 +110,22 @@ public sealed partial class BatchListViewModel : ViewModelBase
         finally { IsBusy = false; }
     }
 
+    /// <summary>
+    /// 可补拉的最近时间窗：只取**已关闭（已到触发时刻）**的窗——窗口关闭后才触发取数（见 CollectionWindow.TriggerTime，含登录补拉）。
+    /// 尚未关闭（如当前正处其中）或整段在未来的窗一律不取，避免拉到不完整/还没发生的数据。
+    /// </summary>
     private IEnumerable<(DateTime Start, DateTime End)> RecentWindows()
     {
         var defs = _session.Config.WindowsFor(_flow);
         var today = DateOnly.FromDateTime(DateTime.Today);
+        var now = DateTime.Now;
         var list = new List<(DateTime, DateTime)>();
         foreach (var anchor in new[] { today, today.AddDays(-1) })
             foreach (var w in defs.Where(w => w.Enabled))
+            {
+                if (anchor.ToDateTime(w.TriggerTime) > now) continue; // 未到触发时刻：窗口未关闭，不补拉
                 list.Add(w.Resolve(anchor));
+            }
         return list.OrderByDescending(x => x.Item2);
     }
 }
