@@ -51,7 +51,17 @@
         <DataGridTextColumn Header="本地文件夹" Binding="{Binding FolderName}" Width="250" />
         <DataGridTextColumn Header="物料数" Binding="{Binding MaterialCount}" Width="80" />
         <DataGridTextColumn Header="进度 / 统计" Binding="{Binding ProgressText}" Width="140" />
-        <DataGridTextColumn Header="状态" Binding="{Binding StatusText}" Width="90" />
+        <DataGridTemplateColumn Header="状态" Width="90">
+          <DataGridTemplateColumn.CellTemplate>
+            <DataTemplate>
+              <Border CornerRadius="11" Padding="9,2" HorizontalAlignment="Left" VerticalAlignment="Center"
+                      Background="{Binding StatusKind, Converter={StaticResource StatusKindToBg}}">
+                <TextBlock Text="{Binding StatusText}" FontSize="12" FontWeight="SemiBold"
+                           Foreground="{Binding StatusKind, Converter={StaticResource StatusKindToBrush}}" />
+              </Border>
+            </DataTemplate>
+          </DataGridTemplateColumn.CellTemplate>
+        </DataGridTemplateColumn>
         <!-- 拉取/完成同为时间(MM-dd HH:mm)，原 100px 放不下 11 个字符会截断，加宽到 135 -->
         <DataGridTextColumn Header="拉取" Binding="{Binding FetchedText}" Width="135" />
         <DataGridTextColumn Header="完成" Binding="{Binding SubmittedText}" Width="135" />

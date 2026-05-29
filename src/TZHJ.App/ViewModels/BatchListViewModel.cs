@@ -186,6 +186,15 @@ public sealed class BatchRowVM
         _ => "处理中",
     };
 
+    // 状态色键（与 StatusKindToBrush/StatusKindToBg 对齐）：绿=已处理 · 灰=未处理 · 橙=含异常的处理中 · 蓝=处理中
+    public string StatusKind => Batch.Location switch
+    {
+        BatchLocation.Done => "Green",
+        _ when Batch.DoneCount == 0 && Batch.ExceptionCount == 0 => "Gray",
+        _ when Batch.ExceptionCount > 0 => "Orange",
+        _ => "Blue",
+    };
+
     public string FetchedText => Batch.FetchedAt.ToString("MM-dd HH:mm");
     public string SubmittedText => Batch.SubmittedAt?.ToString("MM-dd HH:mm") ?? "—";
     public bool IsTodo => Batch.Location == BatchLocation.Todo;

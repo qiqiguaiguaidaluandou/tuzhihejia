@@ -33,7 +33,7 @@ public partial class BatchWorkView : UserControl
         foreach (var f in vm.Fields.OrderBy(x => x.Order))
             Grid.Columns.Add(BuildFieldColumn(f, vm.IsReadOnly));
 
-        Grid.Columns.Add(ReadOnlyColumn("行状态", nameof(RowViewModel.StatusText), 90));
+        Grid.Columns.Add(BuildStatusColumn());
         Grid.Columns.Add(ReadOnlyColumn("异常原因", nameof(RowViewModel.ExceptionReason), 120));
 
         if (!vm.IsReadOnly)
@@ -90,6 +90,26 @@ public partial class BatchWorkView : UserControl
             Binding = new Binding($"[{f.Key}]"),
             IsReadOnly = true,
             Width = new DataGridLength(1, DataGridLengthUnitType.Auto),
+        };
+    }
+
+    /// <summary>行状态列：彩色徽章（色键 StatusKind → 浅底 + 深色文字），一眼区分待处理/已处理/挂起异常。</summary>
+    private static DataGridTemplateColumn BuildStatusColumn()
+    {
+        const string xaml =
+            "<DataTemplate xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' " +
+            "xmlns:x='http://schemas.microsoft.com/winfx/2006/xaml'>" +
+            "<Border CornerRadius='11' Padding='9,2' HorizontalAlignment='Left' VerticalAlignment='Center' " +
+            "Background='{Binding StatusKind, Converter={StaticResource StatusKindToBg}}'>" +
+            "<TextBlock Text='{Binding StatusText}' FontSize='12' FontWeight='SemiBold' " +
+            "Foreground='{Binding StatusKind, Converter={StaticResource StatusKindToBrush}}'/>" +
+            "</Border></DataTemplate>";
+
+        return new DataGridTemplateColumn
+        {
+            Header = "行状态",
+            CellTemplate = (DataTemplate)XamlReader.Parse(xaml),
+            Width = 96,
         };
     }
 

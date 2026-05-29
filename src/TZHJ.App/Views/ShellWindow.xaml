@@ -83,8 +83,8 @@
                 </Button>
                 <Button Style="{StaticResource MenuItemButton}" Click="OnLogout" Margin="0,0,0,6">
                   <StackPanel Orientation="Horizontal">
-                    <fi:SymbolIcon Symbol="SignOut" FontSize="16" Foreground="#DC2626" VerticalAlignment="Center" />
-                    <TextBlock Text="退出登录" Margin="11,0,0,0" VerticalAlignment="Center" Foreground="#DC2626" />
+                    <fi:SymbolIcon Symbol="SignOut" FontSize="16" Foreground="{StaticResource Red}" VerticalAlignment="Center" />
+                    <TextBlock Text="退出登录" Margin="11,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource Red}" />
                   </StackPanel>
                 </Button>
               </StackPanel>

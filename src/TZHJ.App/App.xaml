@@ -13,6 +13,7 @@
 
       <!-- 转换器 -->
       <conv:StatusKindToBrushConverter x:Key="StatusKindToBrush" />
+      <conv:StatusKindToBgConverter x:Key="StatusKindToBg" />
       <conv:BoolToVisibilityConverter x:Key="BoolToVis" />
       <conv:InverseBoolConverter x:Key="InverseBool" />
       <conv:StringToVisibilityConverter x:Key="StringToVis" />

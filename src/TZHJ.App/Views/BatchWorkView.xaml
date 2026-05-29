@@ -28,7 +28,7 @@
     <Border Grid.Row="1" Style="{StaticResource Card}" Margin="24,14,24,8" Padding="14,10">
       <DockPanel LastChildFill="False">
         <TextBlock DockPanel.Dock="Left" VerticalAlignment="Center" Margin="0,0,18,0">
-          <Run Text="进度：" Foreground="#9AA1AB" /><Run Text="{Binding ProgressText, Mode=OneWay}" FontWeight="SemiBold" />
+          <Run Text="进度：" Foreground="{StaticResource TextMuted}" /><Run Text="{Binding ProgressText, Mode=OneWay}" FontWeight="SemiBold" />
         </TextBlock>
         <TextBlock DockPanel.Dock="Left" Text="{Binding FolderPathText}" Foreground="{StaticResource TextMuted}"
                    FontFamily="Consolas" VerticalAlignment="Center" Margin="0,0,10,0"

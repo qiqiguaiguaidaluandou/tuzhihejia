@@ -21,10 +21,18 @@
   <SolidColorBrush x:Key="TextSecondary" Color="#5B6470" />
   <SolidColorBrush x:Key="TextMuted" Color="#9AA1AB" />
 
-  <SolidColorBrush x:Key="GreenBg" Color="#E9F7EF" />
+  <!-- 状态语义色：色（文字/图标）+ 浅底（徽章背景）成对。
+       灰=待处理/未处理 · 蓝=已处理(本地)/处理中 · 绿=已上传/已完成 · 橙=含异常的处理中 · 红=挂起异常 -->
+  <SolidColorBrush x:Key="Blue" Color="#2563EB" />
+  <SolidColorBrush x:Key="BlueBg" Color="#EEF4FF" />
   <SolidColorBrush x:Key="Green" Color="#15803D" />
-  <SolidColorBrush x:Key="OrangeBg" Color="#FDF3E7" />
+  <SolidColorBrush x:Key="GreenBg" Color="#E9F7EF" />
   <SolidColorBrush x:Key="Orange" Color="#C2680A" />
+  <SolidColorBrush x:Key="OrangeBg" Color="#FDF3E7" />
+  <SolidColorBrush x:Key="Red" Color="#DC2626" />
+  <SolidColorBrush x:Key="RedBg" Color="#FDECEC" />
+  <SolidColorBrush x:Key="Gray" Color="#5B6470" />
+  <SolidColorBrush x:Key="GrayBg" Color="#F0F1F3" />
 
   <!-- ============ 字体 ============ -->
   <FontFamily x:Key="UiFont">Microsoft YaHei, Segoe UI</FontFamily>
