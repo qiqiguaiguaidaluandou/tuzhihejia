@@ -186,12 +186,12 @@ public sealed class BatchRowVM
         _ => "处理中",
     };
 
-    // 状态色键（与 StatusKindToBrush/StatusKindToBg 对齐）：绿=已处理 · 灰=未处理 · 橙=含异常的处理中 · 蓝=处理中
+    // 状态色键（与 StatusKindToBrush/StatusKindToBg 对齐）：绿=已处理 · 灰=未处理 · 蓝=处理中
+    // 异常数已在「进度/统计」列单列显示，批次状态不再因含异常而变橙（避免与行级异常的橙撞色、文字仍为"处理中"造成误读）。
     public string StatusKind => Batch.Location switch
     {
         BatchLocation.Done => "Green",
         _ when Batch.DoneCount == 0 && Batch.ExceptionCount == 0 => "Gray",
-        _ when Batch.ExceptionCount > 0 => "Orange",
         _ => "Blue",
     };
 

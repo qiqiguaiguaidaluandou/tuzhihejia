@@ -1,5 +1,6 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:fi="clr-namespace:FluentIcons.Wpf;assembly=FluentIcons.Wpf">
 
   <!-- ============ 调色板（克制 Fluent 商务风，蓝色强调） ============ -->
   <Color x:Key="AccentColor">#2563EB</Color>
@@ -33,6 +34,10 @@
   <SolidColorBrush x:Key="RedBg" Color="#FDECEC" />
   <SolidColorBrush x:Key="Gray" Color="#5B6470" />
   <SolidColorBrush x:Key="GrayBg" Color="#F0F1F3" />
+
+  <!-- 导航图标专用淡色（比状态徽章深色柔和，仅给有语义的图标轻着色，保持克制） -->
+  <SolidColorBrush x:Key="GreenSoft" Color="#58AC82" />
+  <SolidColorBrush x:Key="OrangeSoft" Color="#E0974A" />
 
   <!-- ============ 字体 ============ -->
   <FontFamily x:Key="UiFont">Microsoft YaHei, Segoe UI</FontFamily>
@@ -143,8 +148,14 @@
       <Setter.Value>
         <ControlTemplate TargetType="Button">
           <Border x:Name="bd" CornerRadius="7" Background="{TemplateBinding Background}">
-            <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center"
-                              Margin="{TemplateBinding Padding}" />
+            <Grid>
+              <!-- 选中态左缘强调条（居中的短竖条，不与圆角打架） -->
+              <Border x:Name="bar" Width="3" Height="18" CornerRadius="1.5"
+                      Background="{StaticResource Accent}"
+                      HorizontalAlignment="Left" VerticalAlignment="Center" Visibility="Collapsed" />
+              <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center"
+                                Margin="{TemplateBinding Padding}" />
+            </Grid>
           </Border>
           <ControlTemplate.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
@@ -152,6 +163,7 @@
             </Trigger>
             <DataTrigger Binding="{Binding IsSelected}" Value="True">
               <Setter TargetName="bd" Property="Background" Value="{StaticResource AccentLight}" />
+              <Setter TargetName="bar" Property="Visibility" Value="Visible" />
               <Setter Property="Foreground" Value="{StaticResource Accent}" />
               <Setter Property="FontWeight" Value="SemiBold" />
             </DataTrigger>
@@ -159,6 +171,25 @@
         </ControlTemplate>
       </Setter.Value>
     </Setter>
+  </Style>
+
+  <!-- 侧边栏导航图标：默认中性灰；选中随强调色；有语义的项常驻淡色（绿=已处理 / 橙=异常待跟进） -->
+  <Style x:Key="NavIcon" TargetType="fi:SymbolIcon">
+    <Setter Property="FontSize" Value="17" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Foreground" Value="{StaticResource TextSecondary}" />
+    <Style.Triggers>
+      <DataTrigger Binding="{Binding IsSelected}" Value="True">
+        <Setter Property="Foreground" Value="{StaticResource Accent}" />
+      </DataTrigger>
+      <!-- 语义淡色放在最后：覆盖默认与选中态，使其常驻 -->
+      <DataTrigger Binding="{Binding IconKind}" Value="Green">
+        <Setter Property="Foreground" Value="{StaticResource GreenSoft}" />
+      </DataTrigger>
+      <DataTrigger Binding="{Binding IconKind}" Value="Orange">
+        <Setter Property="Foreground" Value="{StaticResource OrangeSoft}" />
+      </DataTrigger>
+    </Style.Triggers>
   </Style>
 
   <!-- ============ 输入框 ============ -->

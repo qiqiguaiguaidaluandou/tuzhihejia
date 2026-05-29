@@ -62,8 +62,8 @@ public sealed partial class ShellViewModel : ObservableObject
         Items = new[]
         {
             new NavItem { Title = "待处理", Icon = Symbol.DocumentBulletList, Navigate = () => _nav.ToBatchList(flow, BatchLocation.Todo) },
-            new NavItem { Title = "已处理", Icon = Symbol.CheckmarkCircle, Navigate = () => _nav.ToBatchList(flow, BatchLocation.Done) },
-            new NavItem { Title = "异常待跟进", Icon = Symbol.Warning, Navigate = () => _nav.ToExceptions(flow) },
+            new NavItem { Title = "已处理", Icon = Symbol.CheckmarkCircle, IconKind = "Green", Navigate = () => _nav.ToBatchList(flow, BatchLocation.Done) },
+            new NavItem { Title = "异常待跟进", Icon = Symbol.Warning, IconKind = "Orange", Navigate = () => _nav.ToExceptions(flow) },
         },
     };
 
@@ -82,6 +82,9 @@ public sealed partial class NavItem : ObservableObject
     public required string Title { get; init; }
     public required Symbol Icon { get; init; }
     public required Action Navigate { get; init; }
+
+    /// <summary>导航图标的语义淡色键（Green/Orange），null 则用中性灰、选中随强调色。见 FluentTheme 的 NavIcon 样式。</summary>
+    public string? IconKind { get; init; }
 
     [ObservableProperty] private bool _isSelected;
 }

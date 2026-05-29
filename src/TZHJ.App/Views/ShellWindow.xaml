@@ -120,8 +120,7 @@
                                   Command="{Binding DataContext.SelectCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                   CommandParameter="{Binding}">
                             <StackPanel Orientation="Horizontal">
-                              <fi:SymbolIcon Symbol="{Binding Icon}" FontSize="17" VerticalAlignment="Center"
-                                             Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                              <fi:SymbolIcon Symbol="{Binding Icon}" Style="{StaticResource NavIcon}" />
                               <TextBlock Text="{Binding Title}" Margin="10,0,0,0" VerticalAlignment="Center" />
                             </StackPanel>
                           </Button>
