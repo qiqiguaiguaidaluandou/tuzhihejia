@@ -1,8 +1,8 @@
 namespace TZHJ.Gateway.AntiCorruption;
 
 /// <summary>
-/// FakeDataSource 行为参数（来自 appsettings "Fake" 节）。与客户端 MockOptions 同构子集，
-/// 便于无接口期把加载/缺图/回传失败等分支调全。
+/// FakeDataSource 行为参数（来自 appsettings "Fake" 节）：
+/// 便于无接口期把行数/缺图/回传失败等分支调全。
 /// </summary>
 public sealed class FakeOptions
 {

@@ -1,8 +1,7 @@
 namespace TZHJ.Infrastructure.Options;
 
 /// <summary>
-/// 真 HTTP 链路的网关选项（来自 appsettings.json 的 "Http" 节）。
-/// 与 <see cref="MockOptions"/> 并列：UseMock=false 时走这套连后端 TZHJ.Gateway。
+/// 网关选项（来自 appsettings.json 的 "Http" 节）。客户端唯一链路：连后端 TZHJ.Gateway。
 /// </summary>
 public sealed class HttpOptions
 {

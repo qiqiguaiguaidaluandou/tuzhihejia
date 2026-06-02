@@ -5,7 +5,7 @@ namespace TZHJ.Core.Contracts;
 /// <summary>
 /// 用户操作日志网关：记录一次操作（回传/补回传成功后）+ 查询本人操作记录。
 /// 集中上报后端——管理员在服务器侧查全部，操作员在 App 内只看自己（后端按令牌工号过滤）。
-/// 离线用 MockOperationLogGateway（内存留存，当前会话内可见）；真链路用 HttpOperationLogGateway。
+/// 由 HttpOperationLogGateway 实现（POST /api/oplog、GET /api/oplog/mine）。
 /// </summary>
 public interface IOperationLogGateway
 {

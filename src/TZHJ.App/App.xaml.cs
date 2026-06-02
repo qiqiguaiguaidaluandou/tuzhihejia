@@ -24,26 +24,14 @@ public partial class App : Application
             .AddJsonFile("appsettings.json", optional: true)
             .Build();
 
-        var mock = new MockOptions();
-        config.GetSection("Mock").Bind(mock);
-        var useMock = config.GetValue("UseMock", true);
-
         // ---------- DI ----------
         var services = new ServiceCollection();
         services.AddSingleton<IConfiguration>(config);
 
-        if (useMock)
-        {
-            // 离线模式：全用 Mock 造数，无需后端。下方 UI/VM 与此切换无关。
-            services.AddTzhjMockInfrastructure(mock);
-        }
-        else
-        {
-            // 真 HTTP 链路：连后端 TZHJ.Gateway（取数/回传/认证/配置）。UI/VM 不动。
-            var http = new HttpOptions();
-            config.GetSection("Http").Bind(http);
-            services.AddTzhjHttpInfrastructure(http);
-        }
+        // 真 HTTP 链路：连后端 TZHJ.Gateway（取数/回传/认证/配置/操作日志）。客户端唯一链路。
+        var http = new HttpOptions();
+        config.GetSection("Http").Bind(http);
+        services.AddTzhjHttpInfrastructure(http);
 
         // 应用层服务
         services.AddSingleton<ISession, Session>();

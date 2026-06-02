@@ -3,7 +3,7 @@ using TZHJ.Core.Enums;
 using TZHJ.Core.Models;
 using TZHJ.Core.Schemas;
 
-namespace TZHJ.Infrastructure.Gateways.Mock;
+namespace TZHJ.Infrastructure.Fields;
 
 /// <summary>
 /// 默认字段提供者：返回内置 schema。可被登录后下发的 ClientConfig 覆盖——

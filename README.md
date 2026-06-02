@@ -1,8 +1,8 @@
 # 图纸核价 / 挑图纸系统 — PC 客户端骨架
 
-WPF 桌面客户端的工程骨架。当前**无外部接口**（EBS / PLM / SRM / DHR 尚未提供），故采用
-**"接口收到网关后面 + Mock 顶上 + 本地即状态"** 的打法先行开发 UI：客户端只依赖一组网关契约接口，
-真接口到位后**只换实现、UI 不动**。
+WPF 桌面客户端 + 无状态后端网关。当前**外部接口（EBS / PLM / SRM / DHR）尚未提供**，故后端网关
+内部用占位防腐层 `FakeDataSource` 造数顶上；客户端**只走一条真 HTTP 链路**连后端，外部接口到位后
+**只换后端防腐层实现、客户端 UI 不动**。（早期客户端 Mock 网关 / 样例数据生成器已移除，链路收敛为一条。）
 
 > 字段口径以 `docs/方案设计.md` 为准（核价待填列 = **目标价**；挑图待填列 = **是否机加中心可以做**）。
 > 完整设计、上线路线图、界面预览均在 `docs/` 下（`方案设计.md` / `路线图.md` / `WPF界面预览.html`）。
@@ -19,10 +19,11 @@ src/
     Contracts/          IAuthGateway / IConfigGateway / IDataGateway / ISubmitGateway / ILocalBatchStore / DTOs
     Schemas/            FieldSchemas（核价6列/挑图16列首批字段）、CollectionSchedules（核价2窗/挑图3窗）
   TZHJ.Infrastructure/  契约实现（跨平台，无 WPF）
-    Gateways/Mock/      MockAuth / MockConfig / MockData（造数+占位图纸）/ MockSubmit / DefaultFieldProvider
+    Gateways/Http/      HttpAuth / HttpConfig / HttpData / HttpSubmit / HttpAudit / HttpOperationLog（连后端）
+    Fields/             DefaultFieldProvider（内置字段 schema，可被下发 ClientConfig 覆盖）
     Storage/            LocalBatchStore（落本地/读写xlsx/移目录/异常池/完整性校验）、ExcelGridIO、BatchManifest
-    DependencyInjection.cs   AddTzhjMockInfrastructure(...)  ← 无接口先开发的总开关
-  TZHJ.SampleData/      样例数据生成器（控制台，跨平台）：铺出完整本地文件夹树供 UI 开发对着用
+    DependencyInjection.cs   AddTzhjHttpInfrastructure(...)  ← 客户端唯一链路注册入口
+  TZHJ.Gateway/         无状态后端网关（net8.0，ASP.NET Core）：端点 + 防腐层(FakeDataSource 占位) + 存储
   TZHJ.App/             WPF 客户端（net8.0-windows，仅此工程需 Windows）：MVVM + DI
     Services/  ViewModels/  Views/  Converters/
     Styles/FluentTheme.xaml   克制 Fluent 商务风主题（蓝 #2563EB；按钮/输入/DataGrid/卡片/导航样式）
@@ -34,22 +35,22 @@ src/
 因"本地即状态、软件视图 = 本地文件夹视图"，依赖外部的只有 3 个边界点：
 
 - **A 完全不依赖接口**：批次列表（映射文件夹）、可编辑网格、行/批次状态机、提交闸门、暂存、
-  异常池、图纸有无标识与完整性校验、"在资源管理器中打开"。→ 已实现，对着样例数据即可开发。
-- **B 依赖接口但 Mock 顶住**：`IAuthGateway`（登录）、`IDataGateway`（取数）、`ISubmitGateway`（回传）、
-  `IConfigGateway`（配置/时间窗/字段下发）。→ 已有 Mock 实现，含可配延迟与随机失败用于调边界态。
-- **C 样例数据**：`TZHJ.SampleData` 生成。
+  异常池、图纸有无标识与完整性校验、"在资源管理器中打开"。→ 已实现。
+- **B 依赖接口但后端占位顶住**：`IAuthGateway`（登录）、`IDataGateway`（取数）、`ISubmitGateway`（回传）、
+  `IConfigGateway`（配置/时间窗/字段下发）。→ 客户端经 HTTP 调后端；后端 `FakeDataSource` 占位造数，
+  含可配缺图率/回传失败率用于调边界态（`appsettings.json` 的 `Fake` 节）。
 
 ## 构建与运行
 
-**Windows（开发/运行客户端）：**
+**Windows（开发/运行）：客户端只走 HTTP 链路，需先起后端网关。**
 
 ```powershell
-dotnet build TZHJ.sln
-dotnet run --project src/TZHJ.App        # 启动客户端（默认 UseMock=true）
+dotnet run --project src/TZHJ.Gateway     # 1) 起后端网关（默认 http://localhost:8080）
+dotnet run --project src/TZHJ.App         # 2) 起客户端（连 appsettings.json 的 Http:BaseUrl）
 ```
 
-登录：工号任意非空（如 `10086`）、密码任意（填 `fail` 可演示登录失败）。本地根目录默认
-`D:\TZHJ_Data`（见 `src/TZHJ.App/appsettings.json`）。先跑一次样例生成器把数据铺到该目录即可看到批次。
+登录：工号任意非空（如 `10086`）、密码任意（填 `fail` 可演示登录失败）。本地根目录见
+`src/TZHJ.App/appsettings.json` 的 `Http:LocalRoot`。登录后会自动补拉，待处理批次即从后端取下。
 
 **Linux / macOS / CI（仅验证编译，不能运行 WPF）：**
 
@@ -57,24 +58,14 @@ dotnet run --project src/TZHJ.App        # 启动客户端（默认 UseMock=true
 dotnet build TZHJ.sln -p:EnableWindowsTargeting=true
 ```
 
-## 样例数据生成器
-
-铺出 `{核价|挑图}/<工号>/{待处理|已处理|异常待跟进}/<时间窗>/` 全套（清单表格.xlsx + 占位 PDF/STEP + manifest）：
-
-```bash
-dotnet run --project src/TZHJ.SampleData -- --root "D:\TZHJ_Data" --employee 10086
-```
-
-每流程生成 4 个批次：待处理·未处理、待处理·处理中、2 个已处理（含异常行入池）。
-
 ## 真接口到位后怎么切换
 
-1. 在 `TZHJ.Infrastructure` 新增 `HttpAuthGateway / HttpDataGateway / HttpSubmitGateway / HttpConfigGateway`
-   （实现同一组 `Core/Contracts` 接口，内部 HttpClient 调后端无状态网关）。
-2. 加一个 `AddTzhjHttpInfrastructure(...)` 注册扩展。
-3. `App.xaml.cs` 里把 `AddTzhjMockInfrastructure` 换成它（或用 `appsettings.json` 的 `UseMock` 开关）。
+客户端链路已经唯一且固定（HTTP → 后端网关），切换只发生在**后端防腐层**：
 
-UI、ViewModel、本地存储**均不改动**。
+1. 把 `TZHJ.Gateway/AntiCorruption/FakeDataSource`（占位造数）替换为真正调 EBS / PLM / SRM 的实现。
+2. 认证 `FakeAuthService` / `FakeTokenService` 接 DHR；配置/审计存储按需落 PostgreSQL。
+
+客户端 UI、ViewModel、本地存储、HTTP 网关**均不改动**。
 
 ## 字段配置化
 

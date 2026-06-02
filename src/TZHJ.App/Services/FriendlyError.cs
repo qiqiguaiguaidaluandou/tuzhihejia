@@ -5,8 +5,8 @@ namespace TZHJ.App.Services;
 
 /// <summary>
 /// 把网关抛出的技术异常翻成操作员看得懂、能据此行动的中文提示。
-/// 真 HTTP 链路（UseMock=false）下：断网/服务不可达、超时、令牌失效、服务器报错应区别对待，
-/// 而不是把 HttpRequestException 的英文堆栈原样弹给操作员（Mock 模式不抛这些，走 success=false 文案）。
+/// 断网/服务不可达、超时、令牌失效、服务器报错应区别对待，
+/// 而不是把 HttpRequestException 的英文堆栈原样弹给操作员。
 /// </summary>
 public static class FriendlyError
 {
