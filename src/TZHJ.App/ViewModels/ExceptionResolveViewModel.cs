@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TZHJ.App.Services;
 using TZHJ.Core.Contracts;
+using TZHJ.Core.Contracts.Http;
 using TZHJ.Core.Enums;
 using TZHJ.Core.Models;
 
@@ -22,6 +23,7 @@ public sealed partial class ExceptionResolveViewModel : ViewModelBase
     private readonly INavigationService _nav;
     private readonly IDialogService _dialog;
     private readonly IExplorerService _explorer;
+    private readonly IOperationLogGateway _opLog;
 
     private readonly FlowType _flow;
     private readonly ExceptionItem _exception;
@@ -30,6 +32,7 @@ public sealed partial class ExceptionResolveViewModel : ViewModelBase
     public ExceptionResolveViewModel(
         ILocalBatchStore store, ISubmitGateway submit, IFieldProvider fieldProvider,
         ISession session, INavigationService nav, IDialogService dialog, IExplorerService explorer,
+        IOperationLogGateway opLog,
         FlowType flow, ExceptionItem exception)
     {
         _store = store;
@@ -39,6 +42,7 @@ public sealed partial class ExceptionResolveViewModel : ViewModelBase
         _nav = nav;
         _dialog = dialog;
         _explorer = explorer;
+        _opLog = opLog;
         _flow = flow;
         _exception = exception;
 
@@ -166,7 +170,10 @@ public sealed partial class ExceptionResolveViewModel : ViewModelBase
                 return;
             }
 
-            // 成功：该行→已上传，写回来源批次（xlsx+manifest）；再从异常池移除。
+            // 成功：记一条操作日志（fire-and-forget，记录失败不影响回传）。
+            OperationLog.Record(_opLog, SubmitButtonText, _exception.SourceBatch, _flow, _session.Operator.EmployeeId);
+
+            // 该行→已上传，写回来源批次（xlsx+manifest）；再从异常池移除。
             Row.MarkUploaded();
             await _store.SaveBatchAsync(_sourceBatch);
             await _store.RemoveExceptionAsync(

@@ -52,3 +52,37 @@ public sealed class AuditExistsResponse
     public bool Exists { get; init; }
     public string? AuditId { get; init; }
 }
+
+/// <summary>
+/// 用户操作日志一条（集中上报）。管理员在服务器侧查全部，操作员在 App 内只查自己（按令牌工号过滤）。
+/// 记录时机：回传/补回传成功之后。本期只记这两个动作，后续可扩展（加 Operation 取值即可）。
+/// </summary>
+public sealed class OperationLogEntry
+{
+    /// <summary>操作按钮（如"回传到SRM""重新回传到EBS"）。</summary>
+    public required string Operation { get; init; }
+
+    /// <summary>操作电脑 IP（客户端本机局域网 IPv4）。</summary>
+    public string? ClientIp { get; init; }
+
+    /// <summary>表单名称（= 批次文件夹名）。</summary>
+    public required string FormName { get; init; }
+
+    /// <summary>操作时间（客户端本机时间）。</summary>
+    public required DateTime OperatedAt { get; init; }
+
+    /// <summary>所属流程（核价/挑图），便于服务器侧归类。</summary>
+    public FlowType Flow { get; init; }
+
+    /// <summary>
+    /// 工号。客户端上报时可不填——后端以令牌为准盖章写入（防伪造）；
+    /// 查询返回时为该条所属工号。
+    /// </summary>
+    public string? EmployeeId { get; init; }
+}
+
+/// <summary>本人操作日志查询响应（GET /api/oplog/mine）。</summary>
+public sealed class OperationLogListResponse
+{
+    public List<OperationLogEntry> Items { get; init; } = new();
+}

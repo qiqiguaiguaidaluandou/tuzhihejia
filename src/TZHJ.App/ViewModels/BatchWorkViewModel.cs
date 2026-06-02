@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TZHJ.App.Services;
 using TZHJ.Core.Contracts;
+using TZHJ.Core.Contracts.Http;
 using TZHJ.Core.Enums;
 using TZHJ.Core.Models;
 
@@ -22,6 +23,7 @@ public sealed partial class BatchWorkViewModel : ViewModelBase
     private readonly INavigationService _nav;
     private readonly IDialogService _dialog;
     private readonly IExplorerService _explorer;
+    private readonly IOperationLogGateway _opLog;
 
     private readonly FlowType _flow;
     private readonly BatchLocation _location;
@@ -31,6 +33,7 @@ public sealed partial class BatchWorkViewModel : ViewModelBase
     public BatchWorkViewModel(
         ILocalBatchStore store, ISubmitGateway submit, IFieldProvider fieldProvider,
         ISession session, INavigationService nav, IDialogService dialog, IExplorerService explorer,
+        IOperationLogGateway opLog,
         FlowType flow, BatchLocation location, string folderName)
     {
         _store = store;
@@ -40,6 +43,7 @@ public sealed partial class BatchWorkViewModel : ViewModelBase
         _nav = nav;
         _dialog = dialog;
         _explorer = explorer;
+        _opLog = opLog;
         _flow = flow;
         _location = location;
         _folderName = folderName;
@@ -189,7 +193,10 @@ public sealed partial class BatchWorkViewModel : ViewModelBase
                 return;
             }
 
-            // 成功：正常行→已上传；异常行入池；持久化后整批移入已处理。
+            // 成功：记一条操作日志（fire-and-forget，记录失败不影响回传）。
+            OperationLog.Record(_opLog, SubmitButtonText, _batch.FolderName, _flow, _session.Operator.EmployeeId);
+
+            // 正常行→已上传；异常行入池；持久化后整批移入已处理。
             foreach (var r in normal) r.MarkUploaded();
 
             if (exceptions.Count > 0)

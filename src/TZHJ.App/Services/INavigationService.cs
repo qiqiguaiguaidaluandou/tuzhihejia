@@ -19,6 +19,7 @@ public interface INavigationService
     void ToExceptionResolve(FlowType flow, ExceptionItem exception);
     void ToSchedule();
     void ToSettings();
+    void ToOperationLog();
 }
 
 public sealed class NavigationService : INavigationService
@@ -46,6 +47,9 @@ public sealed class NavigationService : INavigationService
 
     public void ToSettings() =>
         Raise(ActivatorUtilities.CreateInstance<SettingsViewModel>(_sp));
+
+    public void ToOperationLog() =>
+        Raise(ActivatorUtilities.CreateInstance<OperationLogViewModel>(_sp));
 
     private ViewModelBase? _current;
 

@@ -32,6 +32,12 @@ builder.Services.AddSingleton<ISubmitSink>(sp => sp.GetRequiredService<FakeDataS
 builder.Services.AddSingleton<IConfigStore, InMemoryConfigStore>();
 builder.Services.AddSingleton<IAuditStore, InMemoryAuditStore>();
 
+// 用户操作日志：落文件（JSONL），管理员服务器侧直接查；操作员经 /api/oplog/mine 只查本人。
+var opLogOptions = new OperationLogOptions();
+builder.Configuration.GetSection("OperationLog").Bind(opLogOptions);
+builder.Services.AddSingleton(opLogOptions);
+builder.Services.AddSingleton<IOperationLogStore, FileOperationLogStore>();
+
 var app = builder.Build();
 
 app.MapTzhjApi();

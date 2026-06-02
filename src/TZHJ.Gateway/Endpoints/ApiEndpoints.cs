@@ -89,6 +89,26 @@ public static class ApiEndpoints
             });
         });
 
+        // 用户操作日志：上报一条（回传/补回传成功后）。工号以令牌为准盖章，防伪造。
+        api.MapPost("/oplog", (OperationLogEntry entry, HttpContext ctx, IOperationLogStore store) =>
+        {
+            var stamped = new OperationLogEntry
+            {
+                Operation = entry.Operation,
+                ClientIp = entry.ClientIp,
+                FormName = entry.FormName,
+                OperatedAt = entry.OperatedAt,
+                Flow = entry.Flow,
+                EmployeeId = ctx.GetEmployeeId(),
+            };
+            store.Append(stamped);
+            return Results.Ok();
+        });
+
+        // 用户操作日志：查本人记录（操作员"操作日志"页用；按令牌工号过滤——只能看到自己）。
+        api.MapGet("/oplog/mine", (HttpContext ctx, IOperationLogStore store) =>
+            Results.Json(new OperationLogListResponse { Items = store.ListByEmployee(ctx.GetEmployeeId()).ToList() }));
+
         // 登录补拉：查某窗口是否已成功回传过
         api.MapGet("/audit/exists", (string flow, string windowStart, string windowEnd, HttpContext ctx, IAuditStore audit) =>
         {

@@ -29,6 +29,7 @@ public static class DependencyInjection
         services.AddSingleton<IDataGateway, MockDataGateway>();
         services.AddSingleton<ISubmitGateway, MockSubmitGateway>();
         services.AddSingleton<IAuditGateway, MockAuditGateway>();
+        services.AddSingleton<IOperationLogGateway, MockOperationLogGateway>();
 
         // 补拉编排（手动/登录/会话内定时共用；纯逻辑，跨平台可测）。
         services.AddSingleton<BatchSyncService>();
@@ -67,6 +68,7 @@ public static class DependencyInjection
         services.AddHttpClient<IDataGateway, HttpDataGateway>(Configure).AddHttpMessageHandler<AuthTokenHandler>();
         services.AddHttpClient<ISubmitGateway, HttpSubmitGateway>(Configure).AddHttpMessageHandler<AuthTokenHandler>();
         services.AddHttpClient<IAuditGateway, HttpAuditGateway>(Configure).AddHttpMessageHandler<AuthTokenHandler>();
+        services.AddHttpClient<IOperationLogGateway, HttpOperationLogGateway>(Configure).AddHttpMessageHandler<AuthTokenHandler>();
 
         // 补拉编排（手动/登录/会话内定时共用；纯逻辑，跨平台可测）。
         services.AddSingleton<BatchSyncService>();
