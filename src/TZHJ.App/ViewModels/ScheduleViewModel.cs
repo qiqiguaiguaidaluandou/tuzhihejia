@@ -36,7 +36,7 @@ public sealed class ScheduleRowVM
         RangeText = w.StartDayOffset == 0
             ? $"今天 {w.StartTime:HH\\:mm} ~ {w.EndTime:HH\\:mm}"
             : $"昨天 {w.StartTime:HH\\:mm} ~ 今天 {w.EndTime:HH\\:mm}";
-        TriggerText = $"≈ {w.TriggerTime:HH\\:mm} 后（登录态）";
+        TriggerText = $"登录补拉 > 1min; 在线/手动 > 30min";
         EnabledText = w.Enabled ? "启用" : "停用";
     }
 

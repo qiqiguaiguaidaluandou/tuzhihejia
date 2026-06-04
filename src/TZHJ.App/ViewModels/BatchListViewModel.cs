@@ -83,7 +83,8 @@ public sealed partial class BatchListViewModel : ViewModelBase
     private void OpenBatch(BatchRowVM row) =>
         _nav.ToBatchWork(_flow, _location, row.Batch.FolderName);
 
-    /// <summary>手动补拉：经 BatchSyncService 补齐"已关闭、本地无、审计未命中"的窗（与登录补拉/会话内定时同一套逻辑）。</summary>
+    /// <summary>手动补拉：经 BatchSyncService 补齐"已关闭、本地无、审计未命中"的窗。
+    /// 手动补拉与定时触发标准一致，需窗口关闭满 30 分钟才触发。</summary>
     [RelayCommand]
     private async Task ManualFetch()
     {
@@ -92,12 +93,12 @@ public sealed partial class BatchListViewModel : ViewModelBase
         try
         {
             var windows = _session.Config.WindowsFor(_flow);
-            var result = await _sync.SyncAsync(_flow, _session.Operator.EmployeeId, windows, DateTime.Now);
+            var result = await _sync.SyncAsync(_flow, _session.Operator.EmployeeId, windows, DateTime.Now, delayMinutes: 30);
             await LoadAsync();
 
             if (result.Fetched > 0) _dialog.Success($"补拉完成，新增 {result.Fetched} 个批次。");
             else if (result.Failed > 0) _dialog.Error($"补拉部分失败：{result.Failed} 个窗口取数未成功，请重试。");
-            else _dialog.Info("本地已是最新，无需补拉。");
+            else _dialog.Info("本地已是最新，无需补拉");
         }
         catch (Exception ex)
         {

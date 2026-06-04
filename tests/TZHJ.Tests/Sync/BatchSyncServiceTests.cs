@@ -12,6 +12,21 @@ public class BatchSyncServiceTests
     private static readonly DateTime Now = new(2026, 5, 27, 14, 0, 0);
     private static readonly DateTime TodayPmStart = new(2026, 5, 27, 9, 31, 0); // 今天下午批起（应被排除）
 
+    [Fact]
+    public void ClosedWindows_respects_custom_delay_minutes()
+    {
+        // 15:45 时，刚好有一个 15:30 结束的窗。
+        var now = new DateTime(2026, 5, 27, 15, 45, 0);
+        
+        // 默认 1min 缓冲：应该包含 15:30 结束的窗。
+        var delay1 = BatchSyncService.ClosedWindows(CollectionSchedules.Pricing, now, delayMinutes: 1).ToList();
+        Assert.Contains(delay1, w => w.End == new DateTime(2026, 5, 27, 15, 30, 0));
+
+        // 30min 缓冲：应该排除 15:30 结束的窗（需等到 16:00）。
+        var delay30 = BatchSyncService.ClosedWindows(CollectionSchedules.Pricing, now, delayMinutes: 30).ToList();
+        Assert.DoesNotContain(delay30, w => w.End == new DateTime(2026, 5, 27, 15, 30, 0));
+    }
+
     private static (BatchSyncService svc, FakeLocalBatchStore store, FakeDataGateway data, FakeAuditGateway audit) Build()
     {
         var store = new FakeLocalBatchStore();

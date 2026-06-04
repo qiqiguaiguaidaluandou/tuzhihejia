@@ -35,12 +35,12 @@ public sealed class SessionSyncScheduler
     {
         if (!_session.IsAuthenticated) return;
         _timer.Start();
-        _ = RunPassAsync(); // 立即一轮 = 登录补拉（后台，不卡界面）
+        _ = RunPassAsync(isInitial: true); // 立即一轮 = 登录补拉（后台，不卡界面，缓冲 1min）
     }
 
     public void Stop() => _timer.Stop();
 
-    private async Task RunPassAsync()
+    private async Task RunPassAsync(bool isInitial = false)
     {
         if (_busy || !_session.IsAuthenticated) return; // 并发护栏：上一轮没跑完就跳过本跳
         _busy = true;
@@ -48,12 +48,14 @@ public sealed class SessionSyncScheduler
         {
             var emp = _session.Operator.EmployeeId;
             var newCount = 0;
+            var delayMinutes = isInitial ? 1 : 30;
+
             foreach (var flow in _session.Operator.AllowedFlows)
             {
                 try
                 {
                     var windows = _session.Config.WindowsFor(flow);
-                    var result = await _sync.SyncAsync(flow, emp, windows, DateTime.Now);
+                    var result = await _sync.SyncAsync(flow, emp, windows, DateTime.Now, delayMinutes);
                     newCount += result.Fetched;
                 }
                 catch

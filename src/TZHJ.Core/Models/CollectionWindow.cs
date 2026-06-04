@@ -25,7 +25,7 @@ public sealed class CollectionWindow
 
     public bool Enabled { get; init; } = true;
 
-    /// <summary>触发时刻 ≈ 窗口关闭后一分钟（登录态触发，含登录补拉）。</summary>
+    /// <summary>最小触发阈值（窗口关闭后一分钟，主要用于登录补拉）。在线自动获取则需 30 分钟。</summary>
     public TimeOnly TriggerTime => EndTime.AddMinutes(1);
 
     /// <summary>

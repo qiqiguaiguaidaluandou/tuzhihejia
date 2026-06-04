@@ -24,14 +24,14 @@ public sealed class BatchSyncService
 
     /// <summary>
     /// 补齐该流程下"已关闭、本地无、审计未命中"的窗。<paramref name="now"/> 由调用方注入（一般 DateTime.Now）。
-    /// 单窗失败（取数异常/取数 success=false）不影响其他窗。
+    /// <paramref name="delayMinutes"/> 表示窗口关闭后需等待多少分钟才触发（默认 1 分钟）。
     /// </summary>
     public async Task<BatchSyncResult> SyncAsync(
-        FlowType flow, string employeeId, IReadOnlyList<CollectionWindow> windows, DateTime now, CancellationToken ct = default)
+        FlowType flow, string employeeId, IReadOnlyList<CollectionWindow> windows, DateTime now, int delayMinutes = 1, CancellationToken ct = default)
     {
         var result = new BatchSyncResult();
 
-        foreach (var (start, end) in ClosedWindows(windows, now))
+        foreach (var (start, end) in ClosedWindows(windows, now, delayMinutes))
         {
             ct.ThrowIfCancellationRequested();
 
@@ -72,18 +72,19 @@ public sealed class BatchSyncService
     }
 
     /// <summary>
-    /// 今天 + 昨天锚定下、**已到触发时刻（窗口关闭后 ≈1min）** 的窗，按止时间倒序。
-    /// 尚未关闭（如当前正处其中）或整段在未来的窗一律排除——窗口关闭后才触发取数。
+    /// 今天 + 昨天锚定下、**已到触发时刻（窗口关闭后 delayMinutes 分钟）** 的窗，按止时间倒序。
+    /// 尚未关闭或未达缓冲时间的窗一律排除。
     /// </summary>
     public static IEnumerable<(DateTime Start, DateTime End)> ClosedWindows(
-        IReadOnlyList<CollectionWindow> windows, DateTime now)
+        IReadOnlyList<CollectionWindow> windows, DateTime now, int delayMinutes = 1)
     {
         var today = DateOnly.FromDateTime(now);
         var list = new List<(DateTime Start, DateTime End)>();
         foreach (var anchor in new[] { today, today.AddDays(-1) })
             foreach (var w in windows.Where(w => w.Enabled))
             {
-                if (anchor.ToDateTime(w.TriggerTime) > now) continue; // 未到触发时刻
+                var triggerTime = anchor.ToDateTime(w.EndTime).AddMinutes(delayMinutes);
+                if (triggerTime > now) continue; // 未到触发时刻
                 list.Add(w.Resolve(anchor));
             }
         return list.OrderByDescending(x => x.End);
