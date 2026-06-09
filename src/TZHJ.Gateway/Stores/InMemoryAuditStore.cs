@@ -34,17 +34,3 @@ public sealed class InMemoryAuditStore : IAuditStore
         return hit is null ? (false, null) : (true, hit.AuditId);
     }
 }
-
-/// <summary>审计日志一条（= 上线后 PostgreSQL audit_log 表的列）。</summary>
-public sealed class AuditRecord
-{
-    public required string AuditId { get; init; }
-    public required FlowType Flow { get; init; }
-    public required string EmployeeId { get; init; }
-    public required string BatchKey { get; init; }
-    public required DateTime WindowStart { get; init; }
-    public required DateTime WindowEnd { get; init; }
-    public required string Target { get; init; }   // SRM / EBS
-    public required int RowCount { get; init; }
-    public required DateTime SubmittedAt { get; init; }
-}
