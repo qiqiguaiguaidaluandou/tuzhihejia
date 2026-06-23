@@ -72,9 +72,20 @@ builder.Services.AddScoped<IOperationLogStore, PgOperationLogStore>();
 builder.Services.AddHostedService<DataIngestionService>();
 
 // ---------- 防腐层接缝 ----------
+// EBS 取数：Ebs:Enabled=true 走真实接口(EbsPlmSource)，否则继续用 FakeDataSource 造数。
+var ebsOptions = new EbsOptions();
+builder.Configuration.GetSection("Ebs").Bind(ebsOptions);
+builder.Services.AddSingleton(ebsOptions);
+builder.Services.AddSingleton<EbsTokenProvider>();
+
 builder.Services.AddSingleton<FakeDataSource>();
-builder.Services.AddSingleton<IEbsPlmSource>(sp => sp.GetRequiredService<FakeDataSource>());
+// 回传(SRM/EBS)仍由 FakeDataSource 顶替（路线图 B2，本期不涉及）。
 builder.Services.AddSingleton<ISubmitSink>(sp => sp.GetRequiredService<FakeDataSource>());
+
+if (ebsOptions.Enabled)
+    builder.Services.AddHttpClient<IEbsPlmSource, EbsPlmSource>();
+else
+    builder.Services.AddSingleton<IEbsPlmSource>(sp => sp.GetRequiredService<FakeDataSource>());
 
 var app = builder.Build();
 

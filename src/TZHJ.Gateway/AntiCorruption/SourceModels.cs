@@ -4,6 +4,10 @@ namespace TZHJ.Gateway.AntiCorruption;
 public sealed class SourceRow
 {
     public required string RowKey { get; init; }
+
+    /// <summary>组别（核价用，来自 EBS 响应的 GROUP_NAME）。挑图不分组，为 null。</summary>
+    public string? GroupName { get; set; }
+
     public Dictionary<string, string?> Values { get; init; } = new();
     public List<SourceDrawing> Drawings { get; init; } = new();
 }

@@ -15,6 +15,7 @@ public static class FieldSchemas
         public const string MaterialCode = "materialCode"; // 物料编码（行标识键）
         public const string Model = "model";               // 型号
         public const string Name = "name";                 // 名称
+        public const string MaterialDesc = "materialDesc"; // 物料描述（EBS ITEM_DESC）
         public const string DemandQty = "demandQty";       // 需求数量
         public const string HasChange = "hasChange";       // 当前是否存在变更（PLM）
         public const string TargetPrice = "targetPrice";   // 目标价（手填、必填）
@@ -40,15 +41,16 @@ public static class FieldSchemas
         public const string CanMachine = "canMachine";     // 是否机加中心可以做（手填、是/否、必填）
     }
 
-    /// <summary>核价表单字段：物料编码/型号/名称/需求数量(EBS) + 当前是否存在变更(PLM) + 目标价(手填、必填)。</summary>
+    /// <summary>核价表单字段：物料编码/型号/名称/物料描述/需求数量(EBS) + 当前是否存在变更(PLM) + 目标价(手填、必填)。</summary>
     public static IReadOnlyList<FieldDefinition> Pricing { get; } = new[]
     {
         new FieldDefinition { Key = PricingKeys.MaterialCode, DisplayName = "物料编码", Source = FieldSource.Ebs, Order = 1, IsRowKey = true },
         new FieldDefinition { Key = PricingKeys.Model,        DisplayName = "型号",     Source = FieldSource.Ebs, Order = 2 },
         new FieldDefinition { Key = PricingKeys.Name,         DisplayName = "名称",     Source = FieldSource.Ebs, Order = 3 },
-        new FieldDefinition { Key = PricingKeys.DemandQty,    DisplayName = "需求数量", Source = FieldSource.Ebs, Order = 4 },
-        new FieldDefinition { Key = PricingKeys.HasChange,    DisplayName = "当前是否存在变更", Source = FieldSource.Plm, Order = 5 },
-        new FieldDefinition { Key = PricingKeys.TargetPrice,  DisplayName = "目标价",   Source = FieldSource.Manual, Editor = FieldEditor.Number, IsRequired = true, Order = 6 },
+        new FieldDefinition { Key = PricingKeys.MaterialDesc, DisplayName = "物料描述", Source = FieldSource.Ebs, Order = 4 },
+        new FieldDefinition { Key = PricingKeys.DemandQty,    DisplayName = "需求数量", Source = FieldSource.Ebs, Order = 5 },
+        new FieldDefinition { Key = PricingKeys.HasChange,    DisplayName = "当前是否存在变更", Source = FieldSource.Plm, Order = 6 },
+        new FieldDefinition { Key = PricingKeys.TargetPrice,  DisplayName = "目标价",   Source = FieldSource.Manual, Editor = FieldEditor.Number, IsRequired = true, Order = 7 },
     };
 
     /// <summary>挑图表单字段：13 个 EBS 只读 + 是否存在变更(PLM) + 是否机加中心可以做(手填、是/否、必填)。</summary>

@@ -67,9 +67,17 @@ public sealed class FakeDataSource : IEbsPlmSource, ISubmitSink
         var rows = new List<SourceRow>(count);
         for (var i = 0; i < count; i++)
         {
-            rows.Add(flow == FlowType.Pricing
-                ? BuildPricingRow(rng)
-                : BuildDrawingRow(rng, windowStart));
+            if (flow == FlowType.Pricing)
+            {
+                var row = BuildPricingRow(rng);
+                // 造数阶段把行交替分到两组，模拟真实 EBS 响应里的 GROUP_NAME（采集服务按此分组落盘）。
+                row.GroupName = i % 2 == 0 ? "组1" : "组2";
+                rows.Add(row);
+            }
+            else
+            {
+                rows.Add(BuildDrawingRow(rng, windowStart)); // 挑图不分组
+            }
         }
         return rows;
     }
@@ -85,6 +93,7 @@ public sealed class FakeDataSource : IEbsPlmSource, ISubmitSink
             [FieldSchemas.PricingKeys.MaterialCode] = code,
             [FieldSchemas.PricingKeys.Model] = $"GB-{rng.Next(1000, 9999)}",
             [FieldSchemas.PricingKeys.Name] = $"{name} / {spec}",
+            [FieldSchemas.PricingKeys.MaterialDesc] = $"{name} / {spec}（{code}）",
             [FieldSchemas.PricingKeys.DemandQty] = rng.Next(1, 500).ToString(),
             [FieldSchemas.PricingKeys.HasChange] = Pick(rng, ChangeStates),
             [FieldSchemas.PricingKeys.TargetPrice] = null, // 待填列：操作员手填
