@@ -17,12 +17,14 @@ public sealed class DataIngestionService : BackgroundService
     private readonly IServiceProvider _sp;
     private readonly ILogger<DataIngestionService> _logger;
     private readonly IConfiguration _config;
+    private readonly EbsOptions _ebs;
 
-    public DataIngestionService(IServiceProvider sp, ILogger<DataIngestionService> logger, IConfiguration config)
+    public DataIngestionService(IServiceProvider sp, ILogger<DataIngestionService> logger, IConfiguration config, EbsOptions ebs)
     {
         _sp = sp;
         _logger = logger;
         _config = config;
+        _ebs = ebs;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -165,25 +167,60 @@ public sealed class DataIngestionService : BackgroundService
     /// </summary>
     private async Task IngestWindowAsync(TzhjDbContext db, IEbsPlmSource source, IServerBatchStore store, FlowType flow, DateTime ws, DateTime we, CancellationToken ct)
     {
-        // 批次级预检：该窗口已登记且磁盘完好 → 直接跳过，避免对真实 EBS 重复取数（同一批次一天会被轮询很多次）。
-        // 若 DB 有记录但磁盘缺失，则放行重取（存储自愈）。
         var batchId = LocalPaths.BatchFolderName(ws, we);
-        var existing = await db.BatchRegistries.Where(b => b.Flow == flow && b.BatchId == batchId).ToListAsync(ct);
-        if (existing.Count > 0 &&
-            existing.All(b => Directory.Exists(LocalPaths.ServerBatchDir(store.Root, flow, b.GroupName, batchId))))
+
+        // 期望组别：核价是固定配置（组1/组2），挑图不分组只有 Center。
+        // 即便某组当天没数据，也要为它建文件夹 + 空表，便于区分"采过但没数据"与"没采到"。
+        var expectedGroups = flow == FlowType.Pricing ? _ebs.PricingGroups : new[] { "Center" };
+
+        // 批次级预检：所有期望组都已登记、且所有已登记组的磁盘都在 → 跳过，避免对真实 EBS 重复取数。
+        // 任一期望组缺登记，或任一已登记组磁盘缺失（存储自愈）→ 放行重取。
+        var registered = await db.BatchRegistries.Where(b => b.Flow == flow && b.BatchId == batchId).ToListAsync(ct);
+        var registeredGroups = registered.Select(b => b.GroupName).ToHashSet();
+        var allExpectedRegistered = expectedGroups.All(g => registeredGroups.Contains(g));
+        var allOnDisk = registered.All(b => Directory.Exists(LocalPaths.ServerBatchDir(store.Root, flow, b.GroupName, batchId)));
+        if (registered.Count > 0 && allExpectedRegistered && allOnDisk)
             return;
 
         var rows = await source.FetchRowsAsync(flow, "SYSTEM", ws, we, ct);
         _logger.LogInformation("EBS 取数完成：{Flow} {Start:yyyy-MM-dd HH:mm}~{End:yyyy-MM-dd HH:mm} → {Count} 行",
             flow, ws, we, rows.Count);
-        if (rows.Count == 0) return;
 
-        var groups = flow == FlowType.Pricing
-            ? rows.GroupBy(r => string.IsNullOrWhiteSpace(r.GroupName) ? "未分组" : r.GroupName!.Trim())
-            : rows.GroupBy(_ => "Center");
+        // 按组分桶：核价把数据行按"组N"前缀匹配到配置的完整组名（匹配不到的意外组按原始组名落盘）；挑图整批归 Center。
+        Dictionary<string, IReadOnlyList<SourceRow>> byGroup;
+        if (flow == FlowType.Pricing)
+        {
+            var prefixToExpected = expectedGroups.ToDictionary(CanonicalGroup, g => g);
+            byGroup = rows
+                .GroupBy(r =>
+                {
+                    var prefix = CanonicalGroup(r.GroupName);
+                    return prefixToExpected.TryGetValue(prefix, out var full)
+                        ? full
+                        : (string.IsNullOrWhiteSpace(r.GroupName) ? prefix : r.GroupName!.Trim());
+                })
+                .ToDictionary(g => g.Key, g => (IReadOnlyList<SourceRow>)g.ToList());
+        }
+        else
+        {
+            byGroup = new Dictionary<string, IReadOnlyList<SourceRow>> { ["Center"] = rows };
+        }
 
-        foreach (var g in groups)
-            await PersistGroupAsync(db, store, flow, g.Key, g.ToList(), ws, we, ct);
+        // 期望组（即便空也建）∪ 数据里实际出现的组（含意外的组，避免丢数据）。
+        foreach (var group in expectedGroups.Concat(byGroup.Keys).Distinct())
+        {
+            var groupRows = byGroup.TryGetValue(group, out var rs) ? rs : Array.Empty<SourceRow>();
+            await PersistGroupAsync(db, store, flow, group, groupRows, ws, we, ct);
+        }
+    }
+
+    /// <summary>把完整组名归一到"组N"前缀（如"组1（模组、先进激光…）"→"组1"），与固定期望组别对齐。无括号则原样去空白。</summary>
+    private static string CanonicalGroup(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return "未分组";
+        var s = raw.Trim();
+        var idx = s.IndexOfAny(new[] { '（', '(' });
+        return idx > 0 ? s[..idx].Trim() : s;
     }
 
     private async Task PersistGroupAsync(TzhjDbContext db, IServerBatchStore store, FlowType flow, string groupName, IReadOnlyList<SourceRow> rows, DateTime ws, DateTime we, CancellationToken ct)
@@ -203,10 +240,10 @@ public sealed class DataIngestionService : BackgroundService
             return;
         }
 
-        _logger.LogInformation("Ingesting/Healing batch: {Flow} - {GroupName} - {BatchId} (Disk:{Disk}, DB:{Db})",
-            flow, groupName, batchId, diskExists, registry != null);
+        _logger.LogInformation("Ingesting/Healing batch: {Flow} - {GroupName} - {BatchId} (Disk:{Disk}, DB:{Db}, Rows:{Rows})",
+            flow, groupName, batchId, diskExists, registry != null, rows.Count);
 
-        if (rows.Count == 0) return;
+        // 注意：不再因 rows.Count==0 早退——空组也要落盘(文件夹+空表)并登记 TotalRows=0。
 
         var resp = new FetchResponse
         {
