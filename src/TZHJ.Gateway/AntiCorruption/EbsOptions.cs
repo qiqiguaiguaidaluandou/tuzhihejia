@@ -35,9 +35,8 @@ public sealed class EbsOptions
     /// 空组只是表里没数据行——便于区分"采过但没数据"与"没采到"。
     /// 数据行按"组N"前缀匹配到这里的完整名；匹配不到的（意外组）按其原始组名照常落盘，不丢数据。
     /// </summary>
-    public string[] PricingGroups { get; set; } =
-    {
-        "组1（模组、先进激光、芯片电阻、合能、奥超、奥杰）",
-        "组2（绿能）",
-    };
+    /// 默认留空：组名由 appsettings.json 的 Ebs:PricingGroups 提供（单一来源）。
+    /// 注意——这里**不能**给非空默认值：.NET 配置绑定数组是“在默认值后追加配置项”，
+    /// 若 C# 默认与 appsettings 各给两条，会叠加成四条（组名两两重复）。
+    public string[] PricingGroups { get; set; } = Array.Empty<string>();
 }
