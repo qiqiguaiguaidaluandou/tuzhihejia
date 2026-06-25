@@ -26,19 +26,23 @@ public static class DependencyInjection
         // 令牌：HttpAuthGateway 登录成功写入，AuthTokenHandler 给后续受保护请求带上 Bearer。
         services.AddSingleton<IAuthTokenStore, AuthTokenStore>();
         services.AddTransient<AuthTokenHandler>();
+        // 每个请求附带本机局域网 IP（X-Client-Ip），供服务端记入操作日志的"操作电脑IP"。
+        services.AddTransient<ClientIpHandler>();
 
-        // 四个 typed HttpClient：同一 BaseUrl + 超时 + 令牌处理器。
+        // 六个 typed HttpClient：同一 BaseUrl + 超时 + 令牌处理器 + 客户端 IP 处理器。
         void Configure(HttpClient client)
         {
             client.BaseAddress = new Uri(http.BaseUrl);
             client.Timeout = TimeSpan.FromSeconds(http.TimeoutSeconds);
         }
-        services.AddHttpClient<IAuthGateway, HttpAuthGateway>(Configure).AddHttpMessageHandler<AuthTokenHandler>();
-        services.AddHttpClient<IConfigGateway, HttpConfigGateway>(Configure).AddHttpMessageHandler<AuthTokenHandler>();
-        services.AddHttpClient<IDataGateway, HttpDataGateway>(Configure).AddHttpMessageHandler<AuthTokenHandler>();
-        services.AddHttpClient<ISubmitGateway, HttpSubmitGateway>(Configure).AddHttpMessageHandler<AuthTokenHandler>();
-        services.AddHttpClient<IAuditGateway, HttpAuditGateway>(Configure).AddHttpMessageHandler<AuthTokenHandler>();
-        services.AddHttpClient<IOperationLogGateway, HttpOperationLogGateway>(Configure).AddHttpMessageHandler<AuthTokenHandler>();
+        IHttpClientBuilder Handlers(IHttpClientBuilder b) =>
+            b.AddHttpMessageHandler<AuthTokenHandler>().AddHttpMessageHandler<ClientIpHandler>();
+        Handlers(services.AddHttpClient<IAuthGateway, HttpAuthGateway>(Configure));
+        Handlers(services.AddHttpClient<IConfigGateway, HttpConfigGateway>(Configure));
+        Handlers(services.AddHttpClient<IDataGateway, HttpDataGateway>(Configure));
+        Handlers(services.AddHttpClient<ISubmitGateway, HttpSubmitGateway>(Configure));
+        Handlers(services.AddHttpClient<IAuditGateway, HttpAuditGateway>(Configure));
+        Handlers(services.AddHttpClient<IOperationLogGateway, HttpOperationLogGateway>(Configure));
 
         // 补拉编排（手动/登录/会话内定时共用；纯逻辑，跨平台可测）。
         services.AddSingleton<BatchSyncService>();

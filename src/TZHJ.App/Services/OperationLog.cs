@@ -2,6 +2,7 @@ using System.Diagnostics;
 using TZHJ.Core.Contracts;
 using TZHJ.Core.Contracts.Http;
 using TZHJ.Core.Enums;
+using TZHJ.Infrastructure.Net;
 
 namespace TZHJ.App.Services;
 

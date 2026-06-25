@@ -31,7 +31,7 @@ public static class ApiEndpoints
                 EmployeeId = result.Operator?.EmployeeId ?? (req.EmployeeId ?? "").Trim(),
                 Status = result.Success ? "Success" : "Failed",
                 Payload = result.Success ? null : result.Message,
-                ClientIp = ctx.Connection.RemoteIpAddress?.ToString(),
+                ClientIp = Ip(ctx),
                 Timestamp = DateTime.UtcNow
             });
             await db.SaveChangesAsync(ct);
@@ -54,7 +54,7 @@ public static class ApiEndpoints
                 EmployeeId = empId,
                 Status = ok ? "Success" : "Failed",
                 Payload = ok ? null : msg,
-                ClientIp = ctx.Connection.RemoteIpAddress?.ToString(),
+                ClientIp = Ip(ctx),
                 Timestamp = DateTime.UtcNow
             });
             await db.SaveChangesAsync(ct);
@@ -144,7 +144,7 @@ public static class ApiEndpoints
                 ImpactCount = 1,
                 Status = "Success",
                 Payload = $"Row: {req.RowKey}",
-                ClientIp = ctx.Connection.RemoteIpAddress?.ToString(),
+                ClientIp = Ip(ctx),
                 Timestamp = DateTime.UtcNow
             });
 
@@ -182,7 +182,7 @@ public static class ApiEndpoints
                 ImpactCount = 1,
                 Status = "Success",
                 Payload = $"Row: {req.RowKey}, Reason: {req.Reason}",
-                ClientIp = ctx.Connection.RemoteIpAddress?.ToString(),
+                ClientIp = Ip(ctx),
                 Timestamp = DateTime.UtcNow
             });
 
@@ -248,7 +248,7 @@ public static class ApiEndpoints
                     ImpactCount = 1,
                     Status = "Success",
                     Payload = $"Row: {rowKey}",
-                    ClientIp = ctx.Connection.RemoteIpAddress?.ToString(),
+                    ClientIp = Ip(ctx),
                     Timestamp = DateTime.UtcNow
                 });
 
@@ -288,7 +288,7 @@ public static class ApiEndpoints
                     Action = "Submit", EmployeeId = empId, Flow = req.Flow, GroupName = req.GroupName, BatchId = req.BatchKey,
                     ImpactCount = 0, Status = "Failed",
                     Payload = $"Target: {target}, 整批回传失败（可重试）",
-                    ClientIp = ctx.Connection.RemoteIpAddress?.ToString(), Timestamp = DateTime.UtcNow,
+                    ClientIp = Ip(ctx), Timestamp = DateTime.UtcNow,
                 });
                 await db.SaveChangesAsync(ct);
                 return Results.Json(new SubmitResult { Success = false, Message = $"回传 {target} 失败，批次未完成，可重试。" });
@@ -305,7 +305,7 @@ public static class ApiEndpoints
                     Action = "Submit", EmployeeId = empId, Flow = req.Flow, GroupName = req.GroupName, BatchId = req.BatchKey,
                     ImpactCount = 0, Status = "Failed",
                     Payload = $"Target: {target}, 回传调用失败（可重试）: {ex.Message}",
-                    ClientIp = ctx.Connection.RemoteIpAddress?.ToString(), Timestamp = DateTime.UtcNow,
+                    ClientIp = Ip(ctx), Timestamp = DateTime.UtcNow,
                 });
                 await db.SaveChangesAsync(ct);
                 return Results.Json(new SubmitResult { Success = false, Message = $"回传 {target} 失败，批次未完成，可重试。" });
@@ -341,7 +341,7 @@ public static class ApiEndpoints
                     Action = "Submit", EmployeeId = empId, Flow = req.Flow, GroupName = req.GroupName, BatchId = req.BatchKey,
                     ImpactCount = failedRows.Count, Status = "Failed",
                     Payload = $"Target: {target}, 永久失败行(已转入异常池，不重试): {detail}",
-                    ClientIp = ctx.Connection.RemoteIpAddress?.ToString(), Timestamp = DateTime.UtcNow,
+                    ClientIp = Ip(ctx), Timestamp = DateTime.UtcNow,
                 });
             }
 
@@ -365,7 +365,7 @@ public static class ApiEndpoints
                 WindowEnd = req.WindowEnd.ToUniversalTime(),
                 AuditId = auditId,
                 Payload = $"Target: {target}",
-                ClientIp = ctx.Connection.RemoteIpAddress?.ToString(),
+                ClientIp = Ip(ctx),
                 Timestamp = DateTime.UtcNow
             });
 
@@ -473,7 +473,20 @@ public static class ApiEndpoints
             Results.Json(await svc.ListGroupsAsync(ct)));
     }
 
-    private static string? Ip(HttpContext ctx) => ctx.Connection.RemoteIpAddress?.ToString();
+    /// <summary>
+    /// 操作日志的"操作电脑IP"：优先采信客户端在 X-Client-Ip 头里自报的本机局域网 IP
+    /// （同机/反向代理/NAT 下连接 IP 都不等于操作员真实工位 IP）。头由客户端自报、可伪造，
+    /// 仅作内网审计线索；校验为合法 IP 才采用，否则回退连接 IP。浏览器（管理后台）不带此头，
+    /// 自然回退到连接 IP。
+    /// </summary>
+    private static string? Ip(HttpContext ctx)
+    {
+        if (ctx.Request.Headers.TryGetValue("X-Client-Ip", out var reported)
+            && System.Net.IPAddress.TryParse(reported.ToString(), out _))
+            return reported.ToString();
+
+        return ctx.Connection.RemoteIpAddress?.ToString();
+    }
 
     private static bool TryParseDt(string s, out DateTime dt) =>
         DateTime.TryParse(s, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out dt);
