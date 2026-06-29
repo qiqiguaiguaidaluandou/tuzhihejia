@@ -16,6 +16,11 @@ public interface IServerBatchStore
     Task SaveBatchAsync(FetchResponse fetched, string groupName, IEnumerable<(string FileName, byte[] Content)> drawings, CancellationToken ct = default);
 
     /// <summary>
+    /// 向已存在的批次目录追加图纸文件（重新取图补图用，不重写 Excel）。
+    /// </summary>
+    Task AppendDrawingsAsync(FlowType flow, string groupName, string batchId, IEnumerable<(string FileName, byte[] Content)> drawings, CancellationToken ct = default);
+
+    /// <summary>
     /// 获取批次目录下的文件清单。
     /// </summary>
     Task<List<SyncFileMeta>> ListFilesAsync(FlowType flow, string groupName, string batchId, CancellationToken ct = default);

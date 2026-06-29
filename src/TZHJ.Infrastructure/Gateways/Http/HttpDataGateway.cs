@@ -109,6 +109,14 @@ public sealed class HttpDataGateway : IDataGateway
         resp.EnsureSuccessStatusCode();
     }
 
+    public async Task<RefetchDrawingResult> RefetchDrawingAsync(RefetchDrawingRequest request, CancellationToken ct = default)
+    {
+        using var resp = await _http.PostAsJsonAsync("/api/batch/refetch-drawing", request, HttpJson.Options, ct);
+        resp.EnsureSuccessStatusCode();
+        return await resp.Content.ReadFromJsonAsync<RefetchDrawingResult>(HttpJson.Options, ct)
+               ?? new RefetchDrawingResult { Found = false, Message = "重新获取图纸响应为空。" };
+    }
+
     /// <summary>流式下载单张图纸字节。窗口起止用 FetchResponse 回显值，保证与后端确定性重生同种子。</summary>
     private async Task<byte[]?> DownloadDrawingAsync(
         FlowType flow, DateTime windowStart, DateTime windowEnd, string drawingId, CancellationToken ct)

@@ -48,6 +48,9 @@ public interface ILocalBatchStore
     /// <summary>写入同步下来的文件字节。</summary>
     Task WriteSyncFileAsync(FlowType flow, string groupName, string batchId, BatchLocation location, string fileName, byte[] content, CancellationToken ct = default);
 
+    /// <summary>把重新获取到的图纸文件名并入指定行的 manifest 图纸清单（去重，不动行状态/字段值）。补图后关联用。</summary>
+    Task AddRowDrawingsAsync(FlowType flow, string groupName, string batchId, BatchLocation location, string rowKey, IEnumerable<string> fileNames, CancellationToken ct = default);
+
     /// <summary>全量覆盖异常池。</summary>
     Task OverwriteExceptionsAsync(FlowType flow, string groupName, IEnumerable<ExceptionItem> items, CancellationToken ct = default);
 }

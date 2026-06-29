@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -66,6 +67,11 @@ public sealed partial class ExceptionResolveViewModel : ViewModelBase
     /// <summary>来源批次/行存在且账号有回传权限——可补处理。否则只读提示。</summary>
     [ObservableProperty] private bool _canResolve;
 
+    /// <summary>来源批次/行已加载即可重新取图（与回传权限无关，常显于补处理页）。</summary>
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(RefetchDrawingCommand))]
+    private bool _canRefetch;
+
     [ObservableProperty] private string _folderPathText = string.Empty;
 
     public bool CanUpload => CanResolve && Row is { Status: RowStatus.Done };
@@ -108,6 +114,9 @@ public sealed partial class ExceptionResolveViewModel : ViewModelBase
             // 解除挂起：清异常态回到待处理（若待填列已填则自动回到已处理），以便编辑后正常判定可上传。
             Row.Restore();
 
+            // 来源批次/行已就位即可重新取图（不要求回传权限）。
+            CanRefetch = true;
+
             if (!_session.Operator.CanSubmit)
             {
                 CanResolve = false;
@@ -130,6 +139,70 @@ public sealed partial class ExceptionResolveViewModel : ViewModelBase
     private void OpenFolder()
     {
         if (_sourceBatch is not null) _explorer.OpenFolder(_sourceBatch.FolderPath);
+    }
+
+    /// <summary>
+    /// 重新获取图纸：取数时 PLM 无图、挂异常后图纸补上了 → 让服务端重新向 PLM 拉取该料号图纸，
+    /// 落到来源批次文件夹并同步到本地。真补上了提示"成功"，仍无图提示"失败"。异常仍开着，
+    /// 看完图后再点「重新回传」结案。
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanRefetch))]
+    private async Task RefetchDrawing()
+    {
+        if (_sourceBatch is null || Row is null) return;
+
+        IsBusy = true;
+        try
+        {
+            var groupName = _sourceBatch.GroupName;
+
+            var result = await _data.RefetchDrawingAsync(new RefetchDrawingRequest
+            {
+                Flow = _flow,
+                GroupName = groupName,
+                BatchId = _sourceBatch.Key,
+                RowKey = Row.RowKey,
+                MaterialCode = _exception.MaterialCode,
+            });
+
+            if (!result.Found || result.Files.Count == 0)
+            {
+                _dialog.Error($"重新获取图纸失败：PLM 中暂无料号「{_exception.MaterialCode}」的图纸，请稍后再试。");
+                return;
+            }
+
+            // 把服务端新落盘的图纸下载到本地批次目录（来源批次在「已处理」），并并入该行 manifest 图纸清单。
+            foreach (var fileName in result.Files)
+            {
+                var bytes = await _data.DownloadFileAsync(_flow, groupName, _sourceBatch.Key, fileName);
+                await _store.WriteSyncFileAsync(_flow, groupName, _sourceBatch.Key, BatchLocation.Done, fileName, bytes);
+
+                // 同步更新内存中的行图纸引用，便于本会话即时识别（去重）。
+                if (!Row.Model.Drawings.Any(d => string.Equals(d.FileName, fileName, System.StringComparison.OrdinalIgnoreCase)))
+                {
+                    Row.Model.Drawings.Add(new DrawingRef
+                    {
+                        FileName = fileName,
+                        MaterialCode = _exception.MaterialCode,
+                        Kind = Path.GetExtension(fileName).TrimStart('.').ToUpperInvariant(),
+                        Exists = true,
+                    });
+                }
+            }
+
+            // 持久化"行↔图纸"关联到本地 manifest（不动行状态：此时尚未回传，仍属异常）。
+            await _store.AddRowDrawingsAsync(_flow, groupName, _sourceBatch.Key, BatchLocation.Done, Row.RowKey, result.Files);
+
+            OperationLog.Record(_opLog, "重新获取图纸", _exception.SourceBatch, _flow, _session.Operator.EmployeeId);
+
+            _dialog.Success($"图纸获取成功：已拉取 {result.Files.Count} 张图纸到本批次文件夹。" +
+                            $"可点「打开来源批次（含图纸）」查看，确认后再「{SubmitButtonText}」。");
+        }
+        catch (System.Exception ex)
+        {
+            _dialog.Error(FriendlyError.Describe(ex, "重新获取图纸"));
+        }
+        finally { IsBusy = false; }
     }
 
     [RelayCommand(CanExecute = nameof(CanUpload))]

@@ -45,6 +45,7 @@ internal sealed class FakeLocalBatchStore : ILocalBatchStore
 
     public Task EnsureBatchFolderAsync(FlowType flow, string groupName, string batchId, BatchLocation location, CancellationToken ct = default) => Task.CompletedTask;
     public Task WriteSyncFileAsync(FlowType flow, string groupName, string batchId, BatchLocation location, string fileName, byte[] content, CancellationToken ct = default) => Task.CompletedTask;
+    public Task AddRowDrawingsAsync(FlowType flow, string groupName, string batchId, BatchLocation location, string rowKey, IEnumerable<string> fileNames, CancellationToken ct = default) => Task.CompletedTask;
     public Task OverwriteExceptionsAsync(FlowType flow, string groupName, IEnumerable<ExceptionItem> items, CancellationToken ct = default) => Task.CompletedTask;
 }
 
@@ -75,6 +76,7 @@ internal sealed class FakeDataGateway : IDataGateway
     public Task SuspendExceptionAsync(SuspendExceptionRequest request, CancellationToken ct = default) => Task.CompletedTask;
     public Task<List<ExceptionItem>> GetExceptionsAsync(CancellationToken ct = default) => Task.FromResult(new List<ExceptionItem>());
     public Task ResolveExceptionAsync(FlowType flow, string groupName, string batchId, string rowKey, CancellationToken ct = default) => Task.CompletedTask;
+    public Task<RefetchDrawingResult> RefetchDrawingAsync(RefetchDrawingRequest request, CancellationToken ct = default) => Task.FromResult(new RefetchDrawingResult { Found = false });
 }
 
 internal sealed class FakeAuditGateway : IAuditGateway

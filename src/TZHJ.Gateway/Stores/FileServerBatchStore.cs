@@ -83,6 +83,26 @@ public sealed class FileServerBatchStore : IServerBatchStore
         }
     }
 
+    public async Task AppendDrawingsAsync(FlowType flow, string groupName, string batchId, IEnumerable<(string FileName, byte[] Content)> drawings, CancellationToken ct = default)
+    {
+        // 与 SaveBatchAsync 同一把批次锁，避免与同批次的 read-modify-write 撞车。
+        var sem = LockFor(flow, groupName, batchId);
+        await sem.WaitAsync(ct);
+        try
+        {
+            var dir = GetBatchPath(flow, groupName, batchId);
+            Directory.CreateDirectory(dir);
+            foreach (var (fileName, content) in drawings)
+            {
+                await File.WriteAllBytesAsync(Path.Combine(dir, fileName), content, ct);
+            }
+        }
+        finally
+        {
+            sem.Release();
+        }
+    }
+
     public Task<List<SyncFileMeta>> ListFilesAsync(FlowType flow, string groupName, string batchId, CancellationToken ct = default)
     {
         var dir = GetBatchPath(flow, groupName, batchId);

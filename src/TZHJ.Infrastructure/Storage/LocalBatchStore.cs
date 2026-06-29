@@ -411,6 +411,27 @@ public sealed class LocalBatchStore : ILocalBatchStore
         await File.WriteAllBytesAsync(Path.Combine(dir, fileName), content, ct);
     }
 
+    public async Task AddRowDrawingsAsync(FlowType flow, string groupName, string batchId, BatchLocation location, string rowKey, IEnumerable<string> fileNames, CancellationToken ct = default)
+    {
+        var dir = LocalPaths.LocalBatchDir(Root, flow, location, groupName, batchId);
+        var manifestPath = Path.Combine(dir, LocalFolders.Manifest);
+        var manifest = await BatchManifest.LoadAsync(manifestPath, ct);
+        if (manifest is null) return; // 无 manifest：靠扫盘按物料编码前缀仍可识别，跳过即可。
+
+        var mr = manifest.Rows.FirstOrDefault(r => r.RowKey == rowKey);
+        if (mr is null)
+        {
+            mr = new ManifestRow { RowKey = rowKey };
+            manifest.Rows.Add(mr);
+        }
+
+        var seen = new HashSet<string>(mr.Drawings, StringComparer.OrdinalIgnoreCase);
+        foreach (var f in fileNames)
+            if (seen.Add(f)) mr.Drawings.Add(f);
+
+        await BatchManifest.SaveAsync(manifestPath, manifest, ct);
+    }
+
     public async Task OverwriteExceptionsAsync(FlowType flow, string groupName, IEnumerable<ExceptionItem> items, CancellationToken ct = default)
     {
         var poolDir = LocalPaths.LocalExceptionPoolRoot(Root, flow);

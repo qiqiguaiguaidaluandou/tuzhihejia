@@ -34,20 +34,30 @@
           <TextBlock Text="{Binding GateText}" Foreground="{StaticResource TextMuted}" FontSize="12" Margin="0,4,0,0" TextWrapping="Wrap" MaxWidth="640" HorizontalAlignment="Left" />
         </StackPanel>
 
-        <Button DockPanel.Dock="Right" Style="{StaticResource BtnPrimary}" Command="{Binding UploadCommand}"
-                Visibility="{Binding CanResolve, Converter={StaticResource BoolToVis}}">
-          <StackPanel Orientation="Horizontal">
-            <fi:SymbolIcon Symbol="ArrowUpload" FontSize="15" Foreground="White" VerticalAlignment="Center" />
-            <TextBlock Text="{Binding SubmitButtonText}" Margin="6,0,0,0" Foreground="White" VerticalAlignment="Center" />
-          </StackPanel>
-        </Button>
-        <Button DockPanel.Dock="Right" Command="{Binding OpenFolderCommand}"
-                Visibility="{Binding CanResolve, Converter={StaticResource BoolToVis}}">
-          <StackPanel Orientation="Horizontal">
-            <fi:SymbolIcon Symbol="FolderOpen" FontSize="15" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center" />
-            <TextBlock Text="打开来源批次（含图纸）" Margin="6,0,0,0" VerticalAlignment="Center" />
-          </StackPanel>
-        </Button>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+          <Button Command="{Binding OpenFolderCommand}"
+                  Visibility="{Binding CanResolve, Converter={StaticResource BoolToVis}}">
+            <StackPanel Orientation="Horizontal">
+              <fi:SymbolIcon Symbol="FolderOpen" FontSize="15" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center" />
+              <TextBlock Text="打开来源批次（含图纸）" Margin="6,0,0,0" VerticalAlignment="Center" />
+            </StackPanel>
+          </Button>
+          <!-- 重新获取图纸：放在「重新回传」前面（左侧）。PLM 当时无图、之后补上时用。 -->
+          <Button Margin="8,0,0,0" Command="{Binding RefetchDrawingCommand}"
+                  Visibility="{Binding CanRefetch, Converter={StaticResource BoolToVis}}">
+            <StackPanel Orientation="Horizontal">
+              <fi:SymbolIcon Symbol="ArrowClockwise" FontSize="15" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center" />
+              <TextBlock Text="重新获取图纸" Margin="6,0,0,0" VerticalAlignment="Center" />
+            </StackPanel>
+          </Button>
+          <Button Margin="8,0,0,0" Style="{StaticResource BtnPrimary}" Command="{Binding UploadCommand}"
+                  Visibility="{Binding CanResolve, Converter={StaticResource BoolToVis}}">
+            <StackPanel Orientation="Horizontal">
+              <fi:SymbolIcon Symbol="ArrowUpload" FontSize="15" Foreground="White" VerticalAlignment="Center" />
+              <TextBlock Text="{Binding SubmitButtonText}" Margin="6,0,0,0" Foreground="White" VerticalAlignment="Center" />
+            </StackPanel>
+          </Button>
+        </StackPanel>
       </DockPanel>
     </Border>
 

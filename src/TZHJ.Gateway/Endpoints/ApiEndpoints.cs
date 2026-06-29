@@ -257,6 +257,56 @@ public static class ApiEndpoints
             return Results.Ok();
         });
 
+        // 7. 按行重新获取图纸：取数时 PLM 无图、挂异常后图纸补上了 → 复用 PLM 取图接口（支持单料号）重新拉取，
+        //    落到来源批次服务端文件夹；客户端据返回文件名同步到本地。Found=false 表示 PLM 仍无图。
+        api.MapPost("/batch/refetch-drawing", async ([FromBody] RefetchDrawingRequest req, HttpContext ctx, IPermissionService perm, PlmClient plm, IServerBatchStore store, TzhjDbContext db, CancellationToken ct) =>
+        {
+            var empId = ctx.GetEmployeeId();
+            if (!await perm.HasAccessAsync(empId, req.Flow, req.GroupName, ct)) return Results.Forbid();
+
+            var registry = await db.BatchRegistries.FirstOrDefaultAsync(b => b.BatchId == req.BatchId && b.GroupName == req.GroupName && b.Flow == req.Flow, ct);
+            if (registry == null)
+                return Results.NotFound(new { message = $"云端找不到该批次记录。BatchId: {req.BatchId}, Group: {req.GroupName}" });
+
+            var code = req.MaterialCode.Trim();
+
+            // 复用现成 PLM 取图接口（FetchDrawingsAsync 本就支持批量/单个料号），只问这一个料号。
+            var byCode = await plm.FetchDrawingsAsync(new[] { code }, ct);
+            byCode.TryGetValue(code, out var picked);
+            var fetched = picked ?? new List<(string FileName, byte[] Content)>();
+
+            if (fetched.Count == 0)
+            {
+                // PLM 仍无图：不改批次、不留成功痕迹，回 Found=false。
+                return Results.Json(new RefetchDrawingResult { Found = false, Message = "PLM 中暂无该料号图纸。" });
+            }
+
+            await store.AppendDrawingsAsync(req.Flow, req.GroupName, req.BatchId, fetched, ct);
+            registry.LastModified = DateTime.UtcNow;
+
+            db.ActivityLogs.Add(new ActivityLog
+            {
+                Action = "RefetchDrawing",
+                EmployeeId = empId,
+                Flow = req.Flow,
+                GroupName = req.GroupName,
+                BatchId = req.BatchId,
+                ImpactCount = fetched.Count,
+                Status = "Success",
+                Payload = $"Row: {req.RowKey}, Files: {string.Join(", ", fetched.Select(f => f.FileName))}",
+                ClientIp = Ip(ctx),
+                Timestamp = DateTime.UtcNow
+            });
+
+            await db.SaveChangesAsync(ct);
+
+            return Results.Json(new RefetchDrawingResult
+            {
+                Found = true,
+                Files = fetched.Select(f => f.FileName).ToList(),
+            });
+        });
+
         // 回传：整批正常行 → SRM/EBS（成功判定 + 幂等 + 失败留痕，见 changes/009）
         api.MapPost("/submit", async ([FromBody] SubmitRequest req, HttpContext ctx, IPermissionService perm, ISubmitSink sink, TzhjDbContext db, CancellationToken ct) =>
         {
