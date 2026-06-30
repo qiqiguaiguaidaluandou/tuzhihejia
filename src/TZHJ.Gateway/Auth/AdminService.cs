@@ -122,6 +122,16 @@ public sealed class AdminService : IAdminService
         var user = await _db.AppUsers.FirstOrDefaultAsync(u => u.EmployeeId == employeeId, ct);
         if (user is null) return ApiResult.Fail("用户不存在。");
 
+        // 末位管理员保护：系统须始终保留至少一个启用的管理员，否则没人能进后台。
+        // 仅在「启用中的管理员被停用」时校验；服务端兜底，绕过 UI(/api/admin/*) 也拦得住。
+        if (!isActive && user.IsActive && user.IsAdmin)
+        {
+            var otherActiveAdmins = await _db.AppUsers
+                .CountAsync(u => u.IsAdmin && u.IsActive && u.EmployeeId != employeeId, ct);
+            if (otherActiveAdmins == 0)
+                return ApiResult.Fail("系统至少需保留一个启用的管理员，不能停用。");
+        }
+
         user.IsActive = isActive;
         if (isActive) { user.FailedAttempts = 0; user.LockoutUntil = null; }
         user.UpdatedAt = DateTime.UtcNow;

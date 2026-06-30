@@ -1,0 +1,52 @@
+@* 通用二次确认模态。破坏性操作（删角色、停用用户等）调用前先 await 确认。
+   用法：
+     <ConfirmDialog @@ref="_confirm" />
+     if (await _confirm.ShowAsync("删除角色", "……", "删除", danger: true)) { …执行… }
+   纯 CSS、无 JS interop；InteractiveServer 下用 TaskCompletionSource 把"点确认/取消"转成 await 结果。 *@
+
+@if (_visible)
+{
+    <div class="modal-overlay" @onclick="() => Close(false)">
+        <div class="modal-card card" @onclick:stopPropagation="true">
+            <h2>@_title</h2>
+            <p class="modal-body">@_body</p>
+            <div class="modal-actions">
+                <button class="ghost" @onclick="() => Close(false)">取消</button>
+                <button class="@(_danger ? "danger" : "")" @onclick="() => Close(true)">@_confirmText</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool _visible;
+    private string _title = "";
+    private string _body = "";
+    private string _confirmText = "确认";
+    private bool _danger;
+    private TaskCompletionSource<bool>? _tcs;
+
+    /// <summary>弹出确认框；用户点"确认"返回 true，点"取消"/遮罩返回 false。</summary>
+    public Task<bool> ShowAsync(string title, string body, string confirmText = "确认", bool danger = false)
+    {
+        // 已有未关闭的弹窗：先把旧的当作取消收尾，避免悬挂的 await。
+        _tcs?.TrySetResult(false);
+
+        _title = title;
+        _body = body;
+        _confirmText = confirmText;
+        _danger = danger;
+        _visible = true;
+        _tcs = new TaskCompletionSource<bool>();
+        StateHasChanged();
+        return _tcs.Task;
+    }
+
+    private void Close(bool result)
+    {
+        _visible = false;
+        var tcs = _tcs;
+        _tcs = null;
+        tcs?.TrySetResult(result);
+    }
+}

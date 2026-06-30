@@ -77,7 +77,7 @@
                     <td>@r.UserCount</td>
                     <td class="actions">
                         <button class="ghost" @onclick="() => Edit(r)">编辑</button>
-                        <button class="danger" disabled="@_busy" @onclick="() => Delete(r.Id)">删除</button>
+                        <button class="danger" disabled="@_busy" @onclick="() => Delete(r)">删除</button>
                     </td>
                 </tr>
             }
@@ -85,8 +85,11 @@
     </table>
 </div>
 
+<ConfirmDialog @ref="_confirm" />
+
 @code {
     [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
+    private ConfirmDialog? _confirm;
 
     private List<RoleSummary> _roles = new();
     private List<GroupOption> _groups = new();
@@ -177,15 +180,21 @@
         finally { _busy = false; }
     }
 
-    private async Task Delete(int id)
+    private async Task Delete(RoleSummary role)
     {
+        var warn = role.UserCount > 0
+            ? $"角色「{role.Name}」当前关联 {role.UserCount} 个用户，删除后他们将失去这部分数据范围。\n确认删除？"
+            : $"确认删除角色「{role.Name}」？";
+        if (_confirm is not null && !await _confirm.ShowAsync("删除角色", warn, "删除", danger: true))
+            return;
+
         _busy = true;
         try
         {
             using var scope = ScopeFactory.CreateScope();
             var svc = scope.ServiceProvider.GetRequiredService<IAdminService>();
-            Show(await svc.DeleteRoleAsync(id, _actor, null));
-            if (_editId == id) ResetForm();
+            Show(await svc.DeleteRoleAsync(role.Id, _actor, null));
+            if (_editId == role.Id) ResetForm();
             await Reload();
         }
         finally { _busy = false; }

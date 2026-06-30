@@ -107,8 +107,11 @@
     </table>
 </div>
 
+<ConfirmDialog @ref="_confirm" />
+
 @code {
     [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
+    private ConfirmDialog? _confirm;
 
     private List<UserSummary> _users = new();
     private List<RoleSummary> _roles = new();
@@ -223,6 +226,12 @@
 
     private async Task SetActive(string empId, bool active)
     {
+        if (!active && _confirm is not null
+            && !await _confirm.ShowAsync("停用用户",
+                $"确认停用 {empId}？停用后该账号将无法登录（账号与审计记录保留，可随时重新启用）。",
+                "停用", danger: true))
+            return;
+
         _busy = true;
         try
         {

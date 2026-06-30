@@ -118,6 +118,32 @@ public class AdminServiceTests
     }
 
     [Fact]
+    public async Task Cannot_deactivate_last_active_admin()
+    {
+        using var db = NewDb();
+        var svc = Svc(db);
+        await svc.CreateUserAsync(new CreateUserRequest { EmployeeId = "admin", DisplayName = "管理员", InitialPassword = "Admin@12345", IsAdmin = true }, "system", null);
+
+        // 由另一个工号发起停用（绕开"不能停用自己"），唯一管理员仍应被末位保护拦下
+        var r = await svc.SetActiveAsync("admin", false, "someone-else", null);
+        Assert.False(r.Success);
+        Assert.True((await db.AppUsers.SingleAsync()).IsActive);
+    }
+
+    [Fact]
+    public async Task Can_deactivate_admin_when_another_active_admin_exists()
+    {
+        using var db = NewDb();
+        var svc = Svc(db);
+        await svc.CreateUserAsync(new CreateUserRequest { EmployeeId = "a1", DisplayName = "管理员1", InitialPassword = "Admin@12345", IsAdmin = true }, "system", null);
+        await svc.CreateUserAsync(new CreateUserRequest { EmployeeId = "a2", DisplayName = "管理员2", InitialPassword = "Admin@12345", IsAdmin = true }, "system", null);
+
+        var r = await svc.SetActiveAsync("a1", false, "a2", null);
+        Assert.True(r.Success);
+        Assert.False((await db.AppUsers.SingleAsync(u => u.EmployeeId == "a1")).IsActive);
+    }
+
+    [Fact]
     public async Task QueryLogs_filters_by_action_and_pages()
     {
         using var db = NewDb();
