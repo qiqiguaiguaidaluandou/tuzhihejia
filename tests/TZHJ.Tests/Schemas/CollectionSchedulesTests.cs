@@ -26,9 +26,11 @@ public class CollectionSchedulesTests
         var ds = CollectionSchedules.DrawingSelection;
         Assert.Equal(3, ds.Count);
 
+        var am = ds.Single(w => w.Name == "上午批");
         var pm = ds.Single(w => w.Name == "下午批");
-        Assert.Equal(new TimeOnly(15, 31), pm.StartTime);
-        Assert.Equal(new TimeOnly(18, 0), pm.EndTime);    // 18:00（界 18:00/18:01）
+        Assert.Equal(new TimeOnly(14, 30), am.EndTime);   // 上午批止 14:30（挑图午间界 14:30/14:31，触发 15:00）
+        Assert.Equal(new TimeOnly(14, 31), pm.StartTime); // 下午批起 14:31
+        Assert.Equal(new TimeOnly(18, 0), pm.EndTime);    // 下午批止 18:00（日界 18:00/18:01，触发 18:30）
     }
 
     [Fact]

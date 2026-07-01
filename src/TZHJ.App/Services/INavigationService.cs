@@ -17,7 +17,6 @@ public interface INavigationService
     void ToBatchWork(FlowType flow, BatchLocation location, string folderName);
     void ToExceptions(FlowType flow);
     void ToExceptionResolve(FlowType flow, ExceptionItem exception);
-    void ToSchedule();
     void ToSettings();
     void ToOperationLog();
 }
@@ -41,9 +40,6 @@ public sealed class NavigationService : INavigationService
 
     public void ToExceptionResolve(FlowType flow, ExceptionItem exception) =>
         Raise(ActivatorUtilities.CreateInstance<ExceptionResolveViewModel>(_sp, flow, exception));
-
-    public void ToSchedule() =>
-        Raise(ActivatorUtilities.CreateInstance<ScheduleViewModel>(_sp));
 
     public void ToSettings() =>
         Raise(ActivatorUtilities.CreateInstance<SettingsViewModel>(_sp));

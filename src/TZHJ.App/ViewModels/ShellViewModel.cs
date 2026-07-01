@@ -45,7 +45,6 @@ public sealed partial class ShellViewModel : ObservableObject
             Header = "系统",
             Items = new[]
             {
-                new NavItem { Title = "采集计划", Icon = Symbol.CalendarClock, Navigate = () => _nav.ToSchedule() },
                 new NavItem { Title = "操作日志", Icon = Symbol.History, Navigate = () => _nav.ToOperationLog() },
                 new NavItem { Title = "设置", Icon = Symbol.Settings, Navigate = () => _nav.ToSettings() },
             },

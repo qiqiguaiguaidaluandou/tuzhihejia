@@ -32,9 +32,6 @@
       <DataTemplate DataType="{x:Type vm:ExceptionResolveViewModel}">
         <views:ExceptionResolveView />
       </DataTemplate>
-      <DataTemplate DataType="{x:Type vm:ScheduleViewModel}">
-        <views:ScheduleView />
-      </DataTemplate>
       <DataTemplate DataType="{x:Type vm:SettingsViewModel}">
         <views:SettingsView />
       </DataTemplate>

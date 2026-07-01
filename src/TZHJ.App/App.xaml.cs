@@ -46,7 +46,7 @@ public partial class App : Application
         services.AddSingleton<INavigationService, NavigationService>();
         services.AddSingleton<SessionSyncScheduler>();
 
-        // ViewModel / 窗口（BatchList/Work/Exception/Schedule/Settings 由 NavigationService 用
+        // ViewModel / 窗口（BatchList/Work/Exception/Settings 由 NavigationService 用
         // ActivatorUtilities 按需创建，无需在此注册）
         services.AddTransient<LoginViewModel>();
         services.AddTransient<ShellViewModel>();

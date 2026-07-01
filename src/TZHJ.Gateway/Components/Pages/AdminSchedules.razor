@@ -1,0 +1,45 @@
+@page "/admin/schedules"
+@attribute [Authorize(Policy = "AdminOnly")]
+@rendermode InteractiveServer
+@using TZHJ.Core.Enums
+@using TZHJ.Core.Schemas
+@using TZHJ.Core.Logging
+
+<h1>采集计划</h1>
+
+<div class="card">
+    <p class="muted">
+        系统按下列排程在服务端自动从 EBS/PLM 采集数据（定时任务，只读）。
+        触发时刻比窗口结束晚约 30 分钟，留数据落定缓冲；同一流程各窗口首尾相接、整天闭合。
+    </p>
+
+    @foreach (var flow in new[] { FlowType.Pricing, FlowType.DrawingSelection })
+    {
+        <h2>@LogText.FlowLabel(flow)</h2>
+        <table>
+            <thead>
+                <tr><th>窗口名</th><th>触发时刻</th><th>采集区间</th><th>启用</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var s in IngestionSchedules.For(flow))
+                {
+                    <tr>
+                        <td>@s.Name</td>
+                        <td>每天 @s.TriggerTime.ToString("HH\\:mm")</td>
+                        <td>@RangeText(s)</td>
+                        <td>@(s.Enabled ? "启用" : "停用")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    private static string RangeText(IngestionSchedule s)
+    {
+        var start = s.StartTime.ToString("HH\\:mm");
+        var end = s.EndTime.ToString("HH\\:mm");
+        return s.StartDayOffset == 0 ? $"今天 {start} ~ {end}" : $"昨天 {start} ~ 今天 {end}";
+    }
+}

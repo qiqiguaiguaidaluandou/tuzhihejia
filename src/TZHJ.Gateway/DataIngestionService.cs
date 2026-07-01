@@ -3,6 +3,7 @@ using TZHJ.Core.Contracts;
 using TZHJ.Core.Contracts.Http;
 using TZHJ.Core.Enums;
 using TZHJ.Core.Models;
+using TZHJ.Core.Schemas;
 using TZHJ.Gateway.AntiCorruption;
 using TZHJ.Gateway.Stores;
 using Microsoft.EntityFrameworkCore;
@@ -103,27 +104,7 @@ public sealed class DataIngestionService : BackgroundService
         _logger.LogInformation("Cleanup completed. Removed {Count} batches.", expired.Count);
     }
 
-    /// <summary>一条采集排程：到达「触发时刻」时，取 [窗口起, 窗口止] 的数据。窗口止固定在触发当天。</summary>
-    private sealed record Schedule(
-        FlowType Flow,
-        int TriggerHour, int TriggerMinute,
-        int StartDayOffset, int StartHour, int StartMinute, // 窗口起点相对触发日的天偏移（0=当天，-1=昨天）
-        int EndHour, int EndMinute);
-
-    /// <summary>
-    /// 项目规定的采集排程（见 docs/接口文档.md 与 docs/changes/013）。
-    /// 触发时刻比窗口结束晚约 30 分钟，留数据落定缓冲。各流程窗口首尾相接、整天闭合。
-    /// </summary>
-    private static readonly Schedule[] Schedules =
-    {
-        // 图纸核价：10:00 取「昨天15:31 ~ 今天09:30」；16:00 取「今天09:31 ~ 15:30」。
-        new(FlowType.Pricing,          10,  0,  -1, 15, 31,   9, 30),
-        new(FlowType.Pricing,          16,  0,   0,  9, 31,  15, 30),
-        // 机加中心挑图：10:00 取「昨天18:01 ~ 今天09:30」；15:00 取「今天09:31 ~ 14:30」；18:30 取「今天14:31 ~ 18:00」。
-        new(FlowType.DrawingSelection, 10,  0,  -1, 18,  1,   9, 30),
-        new(FlowType.DrawingSelection, 15,  0,   0,  9, 31,  14, 30),
-        new(FlowType.DrawingSelection, 18, 30,   0, 14, 31,  18,  0),
-    };
+    // 采集排程的唯一权威定义在 TZHJ.Core.Schemas.IngestionSchedules（客户端补拉/后台展示共用同一套）。
 
     /// <summary>
     /// 检查所有排程：触发时刻已过、且对应批次尚未采集的就采。
@@ -153,15 +134,16 @@ public sealed class DataIngestionService : BackgroundService
 
         foreach (var triggerDate in new[] { now.Date.AddDays(-1), now.Date })
         {
-            foreach (var s in Schedules)
+            var anchor = DateOnly.FromDateTime(triggerDate);
+            foreach (var s in IngestionSchedules.All)
             {
                 if (ct.IsCancellationRequested) return;
+                if (!s.Enabled) continue;
 
-                var triggerAt = triggerDate.AddHours(s.TriggerHour).AddMinutes(s.TriggerMinute);
+                var triggerAt = triggerDate.Add(s.TriggerTime.ToTimeSpan());
                 if (now < triggerAt) continue; // 还没到触发时刻 → 不采（避免取到未封口的窗口）
 
-                var ws = triggerDate.AddDays(s.StartDayOffset).AddHours(s.StartHour).AddMinutes(s.StartMinute);
-                var we = triggerDate.AddHours(s.EndHour).AddMinutes(s.EndMinute);
+                var (ws, we) = s.ToWindow().Resolve(anchor); // 与客户端补拉同一套解算（窗口止固定在触发当天）
 
                 try
                 {
