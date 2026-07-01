@@ -48,7 +48,7 @@
                 <tr>
                     <td>@LocalTime(x.Timestamp)</td>
                     <td>@x.EmployeeId</td>
-                    <td>@ActionText(x.Action)</td>
+                    <td>@(x.Action == "Submit" ? LogText.SubmitLabel(x.Flow, LogText.IsResubmit(x.Payload)) : ActionText(x.Action))</td>
                     <td>
                         @if (x.Status == "Failed") { <span class="pill off">失败</span> }
                         else { <span class="pill ok">成功</span> }

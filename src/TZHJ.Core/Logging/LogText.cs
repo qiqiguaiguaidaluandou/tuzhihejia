@@ -50,6 +50,16 @@ public static class LogText
     /// <summary>流程中文名。</summary>
     public static string FlowLabel(FlowType flow) => flow == FlowType.Pricing ? "核价" : "挑图";
 
+    /// <summary>回传目标：核价→SRM，挑图→EBS（与 /submit 端点一致）。</summary>
+    public static string SubmitTarget(FlowType? flow) => (flow ?? FlowType.Pricing) == FlowType.Pricing ? "SRM" : "EBS";
+
+    /// <summary>提交回传的动作显示名：区分「提交回传/重新回传」并带上回传目标（如「提交回传 → SRM」）。</summary>
+    public static string SubmitLabel(FlowType? flow, bool isRetry) =>
+        $"{(isRetry ? "重新回传" : "提交回传")} → {SubmitTarget(flow)}";
+
+    /// <summary>该条 Submit 日志是否为「重新回传」（异常行重传）。以 payload 里的标记判定。</summary>
+    public static bool IsResubmit(string? payload) => payload is not null && payload.Contains("重新回传");
+
     /// <summary>
     /// 把历史英文 payload 里的已知标签/键翻译成中文（后台「详情」列用）。
     /// 顺序有意义：先长键（empId=）后短键（id=）。命中不到的原样透传，不丢信息。

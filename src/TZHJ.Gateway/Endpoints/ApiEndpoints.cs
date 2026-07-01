@@ -315,6 +315,7 @@ public static class ApiEndpoints
             if (!await perm.HasAccessAsync(empId, req.Flow, req.GroupName, ct)) return Results.Forbid();
 
             var target = req.Flow == FlowType.Pricing ? "SRM" : "EBS";
+            var retryTag = req.IsExceptionRetry ? "，重新回传" : ""; // 落入 payload，供日志区分「重新回传」
 
             var registry = await db.BatchRegistries.FirstOrDefaultAsync(b => b.BatchId == req.BatchKey && b.Flow == req.Flow && b.GroupName == req.GroupName, ct);
             if (registry == null) return Results.NotFound(new { message = "云端找不到批次记录。" });
@@ -339,7 +340,7 @@ public static class ApiEndpoints
                 {
                     Action = "Submit", EmployeeId = empId, Flow = req.Flow, GroupName = req.GroupName, BatchId = req.BatchKey,
                     ImpactCount = 0, Status = "Failed",
-                    Payload = $"Target: {target}, 整批回传失败（可重试）",
+                    Payload = $"Target: {target}{retryTag}, 整批回传失败（可重试）",
                     ClientIp = Ip(ctx), Timestamp = DateTime.UtcNow,
                 });
                 await db.SaveChangesAsync(ct);
@@ -356,7 +357,7 @@ public static class ApiEndpoints
                 {
                     Action = "Submit", EmployeeId = empId, Flow = req.Flow, GroupName = req.GroupName, BatchId = req.BatchKey,
                     ImpactCount = 0, Status = "Failed",
-                    Payload = $"Target: {target}, 回传调用失败（可重试）: {ex.Message}",
+                    Payload = $"Target: {target}{retryTag}, 回传调用失败（可重试）: {ex.Message}",
                     ClientIp = Ip(ctx), Timestamp = DateTime.UtcNow,
                 });
                 await db.SaveChangesAsync(ct);
@@ -407,7 +408,7 @@ public static class ApiEndpoints
                 {
                     Action = "Submit", EmployeeId = empId, Flow = req.Flow, GroupName = req.GroupName, BatchId = req.BatchKey,
                     ImpactCount = failedRows.Count, Status = "Failed",
-                    Payload = $"Target: {target}, 永久失败行(已转入异常池，不重试): {detail}",
+                    Payload = $"Target: {target}{retryTag}, 永久失败行(已转入异常池，不重试): {detail}",
                     ClientIp = Ip(ctx), Timestamp = DateTime.UtcNow,
                 });
             }
@@ -431,7 +432,7 @@ public static class ApiEndpoints
                 WindowStart = req.WindowStart.ToUniversalTime(),
                 WindowEnd = req.WindowEnd.ToUniversalTime(),
                 AuditId = auditId,
-                Payload = $"Target: {target}",
+                Payload = $"Target: {target}{retryTag}",
                 ClientIp = Ip(ctx),
                 Timestamp = DateTime.UtcNow
             });
@@ -475,13 +476,15 @@ public static class ApiEndpoints
             var rows = await db.ActivityLogs
                 .Where(x => x.EmployeeId == empId && visible.Contains(x.Action))
                 .OrderByDescending(x => x.Timestamp)
-                .Select(x => new { x.Action, x.Status, x.Flow, x.BatchId, x.Timestamp })
+                .Select(x => new { x.Action, x.Status, x.Flow, x.BatchId, x.Payload, x.Timestamp })
                 .ToListAsync(ct);
 
             var items = rows.Select(r => new OperationLogEntry
             {
                 EmployeeId = empId,
-                Operation = LogText.ActionLabel(r.Action),
+                Operation = r.Action == "Submit"
+                    ? LogText.SubmitLabel(r.Flow, LogText.IsResubmit(r.Payload)) // 提交回传/重新回传 + 目标(SRM/EBS)
+                    : LogText.ActionLabel(r.Action),
                 FormName = r.BatchId ?? "",
                 Flow = r.Flow ?? FlowType.Pricing,
                 Result = r.Status == "Failed" ? "失败" : "成功",
